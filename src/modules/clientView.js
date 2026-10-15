@@ -84,6 +84,11 @@ export async function renderClientView(param1, param2) {
     id: comercioId
   };
 
+  // Sincronizar Dual Tema Visual (dark o light) con fallback seguro
+  const activeTheme = (store.tema === 'light') ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', activeTheme);
+  document.body.setAttribute('data-theme', activeTheme);
+
   // 2. Cargar platos con las columnas reales de la BD (.eq('slug_comercio', slug).order('cat', { ascending: true }))
   const storeSlugClean = store.slug || slugParam;
   let prodsData = null;
@@ -323,10 +328,10 @@ export async function renderClientView(param1, param2) {
   const renderProductCard = (p) => {
     const inCart = cart.find(c => c.id === p.id);
     return `
-      <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; gap: 0.85rem; transition: transform 0.15s ease, border-color 0.15s ease; border-radius: var(--radius-xl);">
+      <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; gap: 0.85rem; border-radius: var(--radius-xl); border: 1px solid var(--border-default); background: var(--bg-card);">
         <div>
           <!-- Contenedor Responsive 16:9 de Imagen -->
-          <div class="product-media-wrapper" style="width: 100%; aspect-ratio: 16 / 9; max-height: 200px; background: #0f172a; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem; border: 1px solid var(--border-subtle); overflow: hidden; position: relative;">
+          <div class="product-media-wrapper" style="width: 100%; aspect-ratio: 16 / 9; max-height: 200px; background: var(--bg-subtle); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; margin-bottom: 0.85rem; border: 1px solid var(--border-subtle); overflow: hidden; position: relative;">
             ${p.imagen_url ? `
               <img 
                 src="${p.imagen_url}" 
@@ -335,7 +340,7 @@ export async function renderClientView(param1, param2) {
                 style="width: 100%; height: 100%; object-fit: cover; border-radius: inherit; transition: transform 0.3s ease;" 
                 onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';"
               >
-              <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; background: radial-gradient(circle at center, rgba(245, 158, 11, 0.12) 0%, #0f172a 100%);">
+              <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; background: radial-gradient(circle at center, rgba(239, 68, 68, 0.08) 0%, var(--bg-subtle) 100%);">
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 0.35rem; color: var(--accent);"><i data-lucide="utensils" class="lucide-lg"></i></div>
               </div>
             ` : `
@@ -347,8 +352,8 @@ export async function renderClientView(param1, param2) {
           </div>
 
           <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
-            <h3 style="font-weight: 700; font-size: 1.05rem; line-height: 1.3;">${p.nombre}</h3>
-            <span style="font-weight: 800; font-size: 1.1rem; color: var(--accent); white-space: nowrap;">$${Number(p.precio).toLocaleString('es-AR')}</span>
+            <h3 style="font-weight: 700; font-size: 1.05rem; line-height: 1.3; color: var(--text-primary);">${p.nombre}</h3>
+            <span class="product-price-tag" style="white-space: nowrap;">$${Number(p.precio).toLocaleString('es-AR')}</span>
           </div>
 
           <p style="font-size: 0.825rem; color: var(--text-secondary); margin-top: 0.4rem; line-height: 1.45;">
@@ -359,11 +364,11 @@ export async function renderClientView(param1, param2) {
         <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 0.75rem;">
           ${inCart ? `
             <div style="display: flex; align-items: center; gap: 0.6rem;">
-              <button class="btn-icon btn-cart-dec" data-id="${p.id}" style="width: 32px; height: 32px; padding: 0;">
+              <button class="btn-icon btn-cart-dec" data-id="${p.id}" style="width: 32px; height: 32px; padding: 0; border-radius: var(--radius-full);">
                 <i data-lucide="minus" class="lucide-sm"></i>
               </button>
-              <span style="font-weight: 700; font-size: 0.95rem; min-width: 1.25rem; text-align: center;">${inCart.cantidad}</span>
-              <button class="btn-icon btn-cart-inc" data-id="${p.id}" style="width: 32px; height: 32px; padding: 0;">
+              <span style="font-weight: 800; font-size: 0.95rem; min-width: 1.25rem; text-align: center; color: var(--text-primary);">${inCart.cantidad}</span>
+              <button class="btn-icon btn-cart-inc" data-id="${p.id}" style="width: 32px; height: 32px; padding: 0; border-radius: var(--radius-full);">
                 <i data-lucide="plus" class="lucide-sm"></i>
               </button>
             </div>
@@ -371,7 +376,7 @@ export async function renderClientView(param1, param2) {
             <div></div>
           `}
 
-          <button class="btn btn-primary btn-add-prod" data-id="${p.id}" style="padding: 0.45rem 0.9rem; font-size: 0.8rem;">
+          <button class="btn btn-primary btn-add-prod" data-id="${p.id}" style="padding: 0.45rem 1.1rem; font-size: 0.8rem; border-radius: var(--radius-full); font-weight: 700;">
             <i data-lucide="plus" class="lucide-sm"></i>
             ${inCart ? 'Añadir más' : 'Agregar'}
           </button>
@@ -411,12 +416,12 @@ export async function renderClientView(param1, param2) {
 
     // Header superior reutilizable
     const headerHtml = `
-      <header style="background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border-bottom: 1px solid var(--border-subtle); padding: 2rem 1.25rem 1.5rem 1.25rem;">
+      <header style="background: var(--bg-card); border-bottom: 1px solid var(--border-default); box-shadow: var(--shadow-sm); padding: 1.75rem 1.25rem 1.5rem 1.25rem;">
         <div style="max-width: 900px; margin: 0 auto;">
           
           <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
             <div style="display: flex; align-items: center; gap: 1rem;">
-              <div style="width: 54px; height: 54px; border-radius: var(--radius-lg); background: var(--accent); color: #0b1120; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-glow);">
+              <div style="width: 54px; height: 54px; border-radius: var(--radius-lg); background: var(--accent); color: var(--accent-contrast, #ffffff); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm);">
                 <i data-lucide="store" class="lucide-lg"></i>
               </div>
               <div>
@@ -438,8 +443,8 @@ export async function renderClientView(param1, param2) {
 
           <!-- Buscador Dinámico -->
           <div style="position: relative; margin-top: 1.5rem;">
-            <i data-lucide="search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 1.1rem; height: 1.1rem;"></i>
-            <input id="input-search" class="input-field" type="text" placeholder="Buscar por plato, ingrediente o categoría..." value="${searchTerm}" style="padding-left: 2.75rem; border-radius: var(--radius-full); background: rgba(11, 17, 32, 0.7); backdrop-filter: blur(8px);">
+            <i data-lucide="search" style="position: absolute; left: 1.1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 1.1rem; height: 1.1rem;"></i>
+            <input id="input-search" class="input-field" type="text" placeholder="Buscar por plato, ingrediente o categoría..." value="${searchTerm}" style="padding-left: 2.85rem; border-radius: var(--radius-full); background: var(--bg-subtle); border: 1px solid var(--border-default); color: var(--text-primary);">
             ${isSearching ? `
               <button id="btn-clear-search" style="position: absolute; right: 0.85rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; padding: 0.25rem;">
                 <i data-lucide="x" class="lucide-sm"></i>
@@ -451,18 +456,18 @@ export async function renderClientView(param1, param2) {
           ${store.promo_activa && store.promo_texto ? `
             <div class="animate-fade-in" style="
               margin-top: 1.25rem;
-              background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(239, 68, 68, 0.2) 100%);
-              border: 1px solid rgba(245, 158, 11, 0.5);
+              background: var(--accent-light);
+              border: 1px solid var(--accent);
               border-radius: var(--radius-lg);
               padding: 0.85rem 1.2rem;
               display: flex;
               align-items: center;
               gap: 0.75rem;
-              box-shadow: 0 4px 15px rgba(245, 158, 11, 0.15);
+              box-shadow: var(--shadow-sm);
             ">
               <div style="
                 background: var(--accent);
-                color: #0b1120;
+                color: var(--accent-contrast, #ffffff);
                 width: 32px;
                 height: 32px;
                 border-radius: 50%;
@@ -476,7 +481,7 @@ export async function renderClientView(param1, param2) {
               </div>
               <div style="flex: 1;">
                 <span style="font-size: 0.7rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em; color: var(--accent); display: block; margin-bottom: 0.1rem;">Oferta Especial</span>
-                <p style="font-size: 0.875rem; font-weight: 600; color: #fff; line-height: 1.35;">${store.promo_texto}</p>
+                <p style="font-size: 0.875rem; font-weight: 600; color: var(--text-primary); line-height: 1.35;">${store.promo_texto}</p>
               </div>
             </div>
           ` : ''}
@@ -547,7 +552,7 @@ export async function renderClientView(param1, param2) {
                 return `
                   <div class="category-card" data-category="${cat}">
                     <!-- Banner de Portada de Categoría -->
-                    <div style="width: 100%; aspect-ratio: 16 / 10; position: relative; background: #0f172a; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                    <div style="width: 100%; aspect-ratio: 16 / 10; position: relative; background: var(--bg-subtle); overflow: hidden; display: flex; align-items: center; justify-content: center;">
                       ${coverImg ? `
                         <img 
                           src="${coverImg}" 
@@ -557,31 +562,30 @@ export async function renderClientView(param1, param2) {
                           class="cat-cover-img"
                           onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';"
                         >
-                        <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; background: radial-gradient(circle at center, rgba(245, 158, 11, 0.15) 0%, #0f172a 100%);">
+                        <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; background: radial-gradient(circle at center, rgba(239, 68, 68, 0.08) 0%, var(--bg-subtle) 100%);">
                           <i data-lucide="utensils" class="lucide-xl" style="color: var(--accent); opacity: 0.8;"></i>
                         </div>
                       ` : `
-                        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at center, rgba(245, 158, 11, 0.15) 0%, #0f172a 100%);">
+                        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at center, rgba(239, 68, 68, 0.08) 0%, var(--bg-subtle) 100%);">
                           <i data-lucide="utensils" class="lucide-xl" style="color: var(--accent); opacity: 0.8;"></i>
                         </div>
                       `}
-                      <!-- Gradiente inferior para legibilidad -->
-                      <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(15, 23, 42, 0.1) 0%, rgba(15, 23, 42, 0.7) 100%); pointer-events: none;"></div>
+                      <!-- Gradiente inferior sutil para legibilidad -->
+                      <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(15, 23, 42, 0) 35%, rgba(15, 23, 42, 0.45) 100%); pointer-events: none;"></div>
                       
                       <!-- Badge con conteo en esquina -->
                       <span style="
                         position: absolute; 
                         top: 0.75rem; 
                         right: 0.75rem; 
-                        background: rgba(11, 17, 32, 0.75); 
-                        backdrop-filter: blur(8px); 
+                        background: var(--bg-card); 
                         color: var(--text-primary); 
                         font-size: 0.725rem; 
                         font-weight: 700; 
-                        padding: 0.25rem 0.6rem; 
+                        padding: 0.25rem 0.65rem; 
                         border-radius: var(--radius-full); 
-                        border: 1px solid rgba(255, 255, 255, 0.1);
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                        border: 1px solid var(--border-default);
+                        box-shadow: var(--shadow-sm);
                       ">
                         ${count} ${count === 1 ? 'plato' : 'productos'}
                       </span>
@@ -593,7 +597,7 @@ export async function renderClientView(param1, param2) {
                         <h3 style="font-weight: 700; font-size: 1.05rem; color: var(--text-primary);">${cat}</h3>
                         <p style="font-size: 0.775rem; color: var(--text-secondary); margin-top: 0.15rem;">Ver opciones disponibles</p>
                       </div>
-                      <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--bg-primary); display: flex; align-items: center; justify-content: center; color: var(--accent); border: 1px solid var(--border-subtle);">
+                      <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--bg-subtle); display: flex; align-items: center; justify-content: center; color: var(--accent); border: 1px solid var(--border-default);">
                         <i data-lucide="chevron-right" class="lucide-sm"></i>
                       </div>
                     </div>
@@ -612,7 +616,7 @@ export async function renderClientView(param1, param2) {
         <main class="animate-fade-in" style="max-width: 900px; margin: 1.5rem auto 0 auto; padding: 0 1.25rem;">
           
           <!-- Barra superior contextual de navegación -->
-          <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; background: var(--bg-card); padding: 1.15rem 1.25rem; border-radius: var(--radius-xl); border: 1px solid var(--border-subtle);">
+          <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; background: var(--bg-card); padding: 1.15rem 1.25rem; border-radius: var(--radius-xl); border: 1px solid var(--border-default); box-shadow: var(--shadow-sm);">
             
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <button id="btn-back-categories" class="btn btn-secondary" style="padding: 0.45rem 0.9rem; font-size: 0.85rem; border-radius: var(--radius-full);">
@@ -620,7 +624,7 @@ export async function renderClientView(param1, param2) {
                 Volver a Categorías
               </button>
               
-              <span style="font-size: 0.8rem; color: var(--accent); font-weight: 700; background: var(--accent-light); padding: 0.25rem 0.65rem; border-radius: var(--radius-full); border: 1px solid rgba(245, 158, 11, 0.25);">
+              <span style="font-size: 0.8rem; color: var(--accent); font-weight: 700; background: var(--accent-light); padding: 0.25rem 0.65rem; border-radius: var(--radius-full); border: 1px solid rgba(239, 68, 68, 0.2);">
                 ${prodsInCat.length} ${prodsInCat.length === 1 ? 'disponible' : 'disponibles'}
               </span>
             </div>
@@ -661,34 +665,34 @@ export async function renderClientView(param1, param2) {
         ${cart.length > 0 ? `
           <div style="
             position: fixed;
-            bottom: 1rem;
+            bottom: 1.25rem;
             left: 1rem;
             right: 1rem;
             max-width: 600px;
             margin: 0 auto;
-            background: #f59e0b;
-            color: #0b1120;
-            border-radius: var(--radius-xl);
-            padding: 0.85rem 1.25rem;
-            box-shadow: var(--shadow-lg), 0 0 25px rgba(245, 158, 11, 0.4);
+            background: #ef4444;
+            color: #ffffff;
+            border-radius: var(--radius-full);
+            padding: 0.9rem 1.4rem;
+            box-shadow: 0 10px 25px -4px rgba(239, 68, 68, 0.45);
             display: flex;
             justify-content: space-between;
             align-items: center;
             z-index: 100;
             cursor: pointer;
-            transition: transform 0.15s ease;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
           " id="btn-open-cart">
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
-              <div style="background: rgba(11, 17, 32, 0.15); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800;">
+            <div style="display: flex; align-items: center; gap: 0.85rem;">
+              <div style="background: rgba(255, 255, 255, 0.25); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #ffffff;">
                 ${countItems}
               </div>
               <div>
-                <p style="font-weight: 800; font-size: 0.95rem; line-height: 1.1;">Ver Pedido</p>
-                <p style="font-size: 0.75rem; font-weight: 600; opacity: 0.85;">${countItems} ${countItems === 1 ? 'producto' : 'productos'}</p>
+                <p style="font-weight: 800; font-size: 0.95rem; line-height: 1.1; color: #ffffff;">Ver Pedido</p>
+                <p style="font-size: 0.75rem; font-weight: 600; opacity: 0.9; color: #ffffff;">${countItems} ${countItems === 1 ? 'producto' : 'productos'}</p>
               </div>
             </div>
 
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; color: #ffffff;">
               <span style="font-size: 1.2rem; font-weight: 900;">$${totalCart.toLocaleString('es-AR')}</span>
               <i data-lucide="chevron-right" class="lucide"></i>
             </div>
@@ -698,31 +702,33 @@ export async function renderClientView(param1, param2) {
         <!-- Modal de Pedido / Checkout -->
         ${orderModalOpen ? `
           <div class="modal-overlay" id="checkout-modal">
-            <div class="modal-content" style="max-width: 550px;">
+            <div class="modal-content" style="max-width: 550px; background: var(--bg-card);">
               
               <div style="padding: 1.25rem; border-bottom: 1px solid var(--border-default); display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                  <i data-lucide="shopping-bag" style="color: var(--accent);"></i>
-                  <h3 style="font-weight: 800; font-size: 1.15rem;">Confirmar Pedido</h3>
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                  <div style="width: 34px; height: 34px; border-radius: 50%; background: var(--accent-light); color: var(--accent); display: flex; align-items: center; justify-content: center;">
+                    <i data-lucide="shopping-bag" class="lucide-sm"></i>
+                  </div>
+                  <h3 style="font-weight: 800; font-size: 1.15rem; color: var(--text-primary);">Confirmar Pedido</h3>
                 </div>
-                <button id="btn-close-checkout" class="btn-icon" style="border: none;">
+                <button id="btn-close-checkout" class="btn-icon" style="border: none; background: transparent;">
                   <i data-lucide="x"></i>
                 </button>
               </div>
 
               <!-- Resumen de productos en Modal -->
-              <div style="padding: 1.25rem; border-bottom: 1px solid var(--border-subtle); background: var(--bg-primary); max-height: 180px; overflow-y: auto;">
-                <p style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 0.6rem;">Items Seleccionados</p>
+              <div style="padding: 1.15rem 1.25rem; border-bottom: 1px solid var(--border-default); background: var(--bg-subtle); max-height: 180px; overflow-y: auto;">
+                <p style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 0.6rem; letter-spacing: 0.04em;">Items Seleccionados</p>
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                   ${cart.map(item => `
-                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
-                      <span><strong>${item.cantidad}x</strong> ${item.nombre}</span>
-                      <span style="color: var(--accent); font-weight: 700;">$${(item.precio * item.cantidad).toLocaleString('es-AR')}</span>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
+                      <span style="color: var(--text-primary);"><strong>${item.cantidad}x</strong> ${item.nombre}</span>
+                      <span style="color: var(--price-color); font-weight: 700;">$${(item.precio * item.cantidad).toLocaleString('es-AR')}</span>
                     </div>
                   `).join('')}
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 1.05rem; font-weight: 800; border-top: 1px dashed var(--border-default); margin-top: 0.75rem; padding-top: 0.75rem;">
-                  <span>Total</span>
+                  <span style="color: var(--text-primary);">Total</span>
                   <span style="color: var(--accent);">$${totalCart.toLocaleString('es-AR')}</span>
                 </div>
               </div>
@@ -795,7 +801,8 @@ export async function renderClientView(param1, param2) {
                     <label style="
                       display: flex; align-items: center; gap: 0.6rem; padding: 0.75rem; border-radius: var(--radius-md);
                       border: 1px solid ${orderData.metodoPago === 'efectivo' ? 'var(--accent)' : 'var(--border-default)'};
-                      background: ${orderData.metodoPago === 'efectivo' ? 'var(--accent-light)' : 'var(--bg-primary)'};
+                      background: ${orderData.metodoPago === 'efectivo' ? 'var(--accent-light)' : '#ffffff'};
+                      color: var(--text-primary);
                       cursor: pointer;
                     ">
                       <input type="radio" name="metodo_pago" value="efectivo" ${orderData.metodoPago === 'efectivo' ? 'checked' : ''} style="accent-color: var(--accent);">
@@ -806,7 +813,8 @@ export async function renderClientView(param1, param2) {
                     <label style="
                       display: flex; align-items: center; gap: 0.6rem; padding: 0.75rem; border-radius: var(--radius-md);
                       border: 1px solid ${orderData.metodoPago === 'transferencia' ? 'var(--accent)' : 'var(--border-default)'};
-                      background: ${orderData.metodoPago === 'transferencia' ? 'var(--accent-light)' : 'var(--bg-primary)'};
+                      background: ${orderData.metodoPago === 'transferencia' ? 'var(--accent-light)' : '#ffffff'};
+                      color: var(--text-primary);
                       cursor: pointer;
                     ">
                       <input type="radio" name="metodo_pago" value="transferencia" ${orderData.metodoPago === 'transferencia' ? 'checked' : ''} style="accent-color: var(--accent);">

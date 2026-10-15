@@ -45,11 +45,16 @@ export async function renderOwnerPanel(param1, param2) {
 
   store = storeData;
 
+  // Sincronizar Dual Tema Visual (dark o light) con fallback seguro
+  const storeTheme = (store.tema === 'light') ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', storeTheme);
+  document.body.setAttribute('data-theme', storeTheme);
+
   // Render Login PIN
   const renderPinLock = () => {
     container.innerHTML = `
-      <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem; background: radial-gradient(circle at 50% 20%, #1e293b 0%, #0b1120 80%);">
-        <div class="card" style="width: 100%; max-width: 420px; text-align: center; padding: 2.5rem 2rem; border-color: var(--border-default); box-shadow: var(--shadow-lg);">
+      <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem; background: var(--bg-primary);">
+        <div class="card" style="width: 100%; max-width: 420px; text-align: center; padding: 2.5rem 2rem; border-color: var(--border-default); box-shadow: var(--shadow-lg); background: var(--bg-card); border-radius: var(--radius-xl);">
           
           <div style="width: 64px; height: 64px; border-radius: 50%; background: var(--accent-light); color: var(--accent); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem auto;">
             <i data-lucide="lock" class="lucide-lg"></i>
@@ -68,7 +73,7 @@ export async function renderOwnerPanel(param1, param2) {
               <span>PIN incorrecto. Reintente.</span>
             </div>
 
-            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem;">
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem; border-radius: var(--radius-full);">
               <i data-lucide="unlock"></i>
               Acceder al Panel
             </button>
@@ -164,12 +169,13 @@ export async function renderOwnerPanel(param1, param2) {
     const toast = document.createElement('div');
     toast.className = 'card animate-fade-in';
     toast.style.cssText = `
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      border: 2px solid #10b981;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 0 20px rgba(16, 185, 129, 0.35);
+      background: #ffffff;
+      border: 1px solid var(--border-default);
+      border-left: 4px solid #10b981;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 0 15px rgba(16, 185, 129, 0.15);
       border-radius: var(--radius-xl);
       padding: 1rem 1.25rem;
-      color: #fff;
+      color: var(--text-primary);
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
@@ -179,10 +185,10 @@ export async function renderOwnerPanel(param1, param2) {
     toast.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(16, 185, 129, 0.2); color: #34d399;">
+          <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(16, 185, 129, 0.12); color: #059669;">
             <i data-lucide="bell-ring" class="lucide-sm"></i>
           </span>
-          <strong style="font-size: 0.95rem; color: #34d399;">¡Nuevo Pedido #${orderNum}!</strong>
+          <strong style="font-size: 0.95rem; color: #059669;">¡Nuevo Pedido #${orderNum}!</strong>
         </div>
         <button class="btn-close-toast" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; display: flex; padding: 0.2rem;">
           <i data-lucide="x" class="lucide-sm"></i>
@@ -194,7 +200,7 @@ export async function renderOwnerPanel(param1, param2) {
           <p style="font-weight: 700; font-size: 0.9rem; color: var(--text-primary);">${cliente}</p>
           <p style="font-size: 0.75rem; color: var(--text-secondary);">${modalidad} • ${pedido.direccion_o_mesa || 'Retiro'}</p>
         </div>
-        <div style="font-size: 1.15rem; font-weight: 900; color: var(--accent);">$${total}</div>
+        <div style="font-size: 1.15rem; font-weight: 900; color: #059669;">$${total}</div>
       </div>
     `;
 
@@ -237,7 +243,112 @@ export async function renderOwnerPanel(param1, param2) {
       if (!silent) pedidosHoy = [];
     }
 
+    // Guardar en variable global accesible
+    window._pedidosCache = pedidosHoy || [];
+
     renderDashboard();
+  };
+
+  /**
+   * Función global infalible para mostrar el modal de detalle del pedido
+   */
+  window.mostrarModalDetallePedido = function(id) {
+    console.log("Abriendo detalle para pedido ID:", id);
+    const pedido = (window._pedidosCache || pedidosHoy || []).find(p => String(p.id) === String(id) || String(p.numero_orden) === String(id));
+    
+    if (!pedido) {
+      console.error("Pedido no encontrado en caché:", id);
+      return;
+    }
+
+    // Parsear items si vienen como string JSON
+    let items = pedido.items;
+    if (typeof items === 'string') {
+      try { items = JSON.parse(items); } catch(e) { items = []; }
+    }
+    if (!Array.isArray(items)) items = [];
+
+    const itemsHTML = items.map(item => `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding: 10px 0; border-bottom: 1px solid var(--border-subtle); font-size: 14px;">
+        <div>
+          <span style="background: var(--accent-light); color: var(--accent); font-weight: bold; padding: 2px 8px; border-radius: 6px; font-size: 12px; margin-right: 8px;">
+            ${item.cantidad || 1}x
+          </span>
+          <span style="color: var(--text-primary); font-weight: 600;">${item.nombre || item.titulo || item.name || 'Producto'}</span>
+          ${item.observacion || item.aclaraciones || item.notas ? `<p style="color: var(--text-muted); font-size: 12px; margin: 2px 0 0 28px; font-style: italic;">Nota: ${item.observacion || item.aclaraciones || item.notas}</p>` : ''}
+        </div>
+        <span class="product-price-tag" style="color: var(--price-color); font-weight: 700;">$${Number((item.precio || 0) * (item.cantidad || 1)).toLocaleString('es-AR')}</span>
+      </div>
+    `).join('');
+
+    // Remover modal anterior si existe
+    const modalPrevio = document.getElementById('modal-pedido-detalle');
+    if (modalPrevio) modalPrevio.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modal-pedido-detalle';
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'position:fixed; inset:0; z-index:99999; display:flex; align-items:center; justify-content:center; padding:16px;';
+    
+    // Formateo de fecha y hora
+    let fechaHoraStr = 'Recién';
+    if (pedido.created_at) {
+      try {
+        fechaHoraStr = new Date(pedido.created_at).toLocaleString('es-AR');
+      } catch (e) {}
+    }
+
+    modal.innerHTML = `
+      <div class="modal-content" style="background:var(--bg-card); border:1px solid var(--border-default); width:100%; max-width:520px; border-radius:20px; padding:24px; box-shadow:var(--shadow-lg); position:relative; color:var(--text-primary); font-family:sans-serif;">
+        <!-- Cabecera -->
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1px solid var(--border-default); padding-bottom:16px;">
+          <div>
+            <span style="color:var(--accent); font-size:13px; font-family:monospace; font-weight:700;">ORDEN #${pedido.numero_orden || pedido.id}</span>
+            <h2 style="font-size:22px; font-weight:800; margin:4px 0 0 0; color:var(--text-primary);">${pedido.cliente || pedido.cliente_nombre || 'Cliente'}</h2>
+            <span style="font-size:12px; color:var(--text-secondary);">${fechaHoraStr}</span>
+          </div>
+          <button id="cerrar-modal-x" style="background:transparent; border:none; color:var(--text-secondary); font-size:26px; cursor:pointer; line-height:1;">&times;</button>
+        </div>
+
+        <!-- Detalles de Envío / Mesa -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:16px 0;">
+          <div style="background:var(--bg-subtle); border:1px solid var(--border-default); padding:12px; border-radius:12px;">
+            <span style="font-size:11px; text-transform:uppercase; color:var(--text-muted); display:block; font-weight:700;">Modalidad & Destino</span>
+            <strong style="font-size:14px; color:var(--info); text-transform:capitalize;">${pedido.modalidad || 'Delivery'}</strong>
+            <p style="margin:4px 0 0 0; font-size:13px; color:var(--text-primary); word-break:break-word;">${pedido.direccion_o_mesa || pedido.direccion || 'Retiro en el local'}</p>
+          </div>
+          <div style="background:var(--bg-subtle); border:1px solid var(--border-default); padding:12px; border-radius:12px;">
+            <span style="font-size:11px; text-transform:uppercase; color:var(--text-muted); display:block; font-weight:700;">Forma de Pago</span>
+            <strong style="font-size:14px; color:var(--success); text-transform:uppercase;">${pedido.pago || pedido.metodo_pago || 'Efectivo'}</strong>
+            <p style="margin:4px 0 0 0; font-size:15px; font-weight:800; color:var(--price-color);">$${Number(pedido.total || 0).toLocaleString('es-AR')}</p>
+          </div>
+        </div>
+
+        <!-- Lista de Ítems -->
+        <div style="margin-top:12px;">
+          <span style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted);">Desglose del Pedido:</span>
+          <div style="max-height:220px; overflow-y:auto; margin-top:8px; padding-right:6px;">
+            ${itemsHTML || '<p style="color:var(--text-muted); font-size:13px; font-style:italic;">Sin ítems detallados</p>'}
+          </div>
+        </div>
+
+        <!-- Pie con Total y Cierre -->
+        <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border-default); display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <span style="font-size:11px; color:var(--text-muted); display:block; font-weight:600;">Total Final:</span>
+            <span style="font-size:24px; font-weight:900; color:var(--accent);">$${Number(pedido.total || 0).toLocaleString('es-AR')}</span>
+          </div>
+          <button id="cerrar-modal-btn" class="btn btn-secondary" style="padding:10px 20px; font-weight:700; cursor:pointer; font-size:14px;">Cerrar</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const cerrar = () => modal.remove();
+    modal.querySelector('#cerrar-modal-x').onclick = cerrar;
+    modal.querySelector('#cerrar-modal-btn').onclick = cerrar;
+    modal.onclick = (e) => { if (e.target === modal) cerrar(); };
   };
 
   /**
@@ -334,39 +445,146 @@ export async function renderOwnerPanel(param1, param2) {
 
   const renderDashboard = () => {
     const totalVentas = pedidosHoy.reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
-    // Solo contar como pedidos en curso aquellos en 'pendiente' o 'en_preparacion'
-    const pedidosPendientes = pedidosHoy.filter(p => p.estado === 'pendiente' || p.estado === 'en_preparacion' || !p.estado).length;
 
-    // Helper de color y etiqueta para estados
+    // Helper de normalización a los 3 estados operativos exclusivos: pendiente, preparado, enviado
+    const normalizeStatus = (st) => {
+      const s = (st || 'pendiente').toLowerCase().trim();
+      if (s === 'preparado' || s === 'en_preparacion') return 'preparado';
+      if (s === 'enviado' || s === 'en_camino' || s === 'entregado') return 'enviado';
+      if (s === 'cancelado') return 'enviado';
+      return 'pendiente';
+    };
+
+    // Pedidos en curso: contabiliza ÚNICAMENTE pedidos activos que requieren atención (pendiente o preparado)
+    const pedidosActivosCount = pedidosHoy.filter(p => {
+      const s = normalizeStatus(p.estado);
+      return s === 'pendiente' || s === 'preparado';
+    }).length;
+
+    // Helper de estilo y etiqueta para los 3 estados operativos con alto contraste
     const getStatusConfig = (st) => {
-      const s = (st || 'pendiente').toLowerCase();
+      const s = normalizeStatus(st);
       switch (s) {
-        case 'en_preparacion':
-          return { label: 'En preparación', bg: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', border: 'rgba(59, 130, 246, 0.4)' };
-        case 'en_camino':
-          return { label: 'En camino / Listo', bg: 'rgba(168, 85, 247, 0.2)', color: '#c084fc', border: 'rgba(168, 85, 247, 0.4)' };
-        case 'entregado':
-          return { label: 'Entregado', bg: 'rgba(16, 185, 129, 0.2)', color: '#34d399', border: 'rgba(16, 185, 129, 0.4)' };
-        case 'cancelado':
-          return { label: 'Cancelado', bg: 'rgba(239, 68, 68, 0.2)', color: '#f87171', border: 'rgba(239, 68, 68, 0.4)' };
+        case 'preparado':
+          return { label: 'Preparado', bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' };
+        case 'enviado':
+          return { label: 'Enviado', bg: '#ecfdf5', color: '#047857', border: '#a7f3d0' };
         case 'pendiente':
         default:
-          return { label: 'Pendiente', bg: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', border: 'rgba(245, 158, 11, 0.4)' };
+          return { label: 'Pendiente', bg: '#fffbeb', color: '#b45309', border: '#fde68a' };
       }
+    };
+
+    // Criterio de Prioridad y Reordenamiento Automático:
+    // 1. Prioridad Alta (Arriba): 'pendiente' y 'preparado' ordenados por fecha/ID descendente
+    const listActivos = pedidosHoy
+      .filter(p => normalizeStatus(p.estado) !== 'enviado')
+      .sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
+
+    // 2. Desplazamiento al fondo (Abajo): 'enviado' pasan a menor prioridad visual
+    const listEnviados = pedidosHoy
+      .filter(p => normalizeStatus(p.estado) === 'enviado')
+      .sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
+
+    // Helper reutilizable para renderizar cada card de pedido
+    const renderCardPedidoRow = (ped, isEnviado = false) => {
+      const orderNum = ped.numero_orden || ped.id || 'PED';
+      const clienteNombre = ped.cliente || ped.cliente_nombre || 'Cliente';
+      const direccionMesa = ped.direccion_o_mesa || ped.direccion || ped.mesa || (ped.modalidad === 'mesa' ? 'En Mesa' : 'Retiro en el local');
+      const metodoPago = ped.pago || ped.metodo_pago || 'Efectivo';
+      const normStatus = normalizeStatus(ped.estado);
+      const statusCfg = getStatusConfig(normStatus);
+
+      let resumenItems = '';
+      if (Array.isArray(ped.items) && ped.items.length > 0) {
+        resumenItems = ped.items.map(i => `${i.cantidad || 1}x ${i.nombre || i.name}`).join(', ');
+      } else {
+        resumenItems = ped.items_resumen || 'Ver detalle de productos';
+      }
+
+      return `
+        <div class="card-pedido-row" data-order-id="${ped.id}" data-pedido-id="${ped.id}" onclick="window.mostrarModalDetallePedido('${ped.id}')" style="
+          background: ${isEnviado ? 'var(--bg-subtle)' : 'var(--bg-card)'}; 
+          opacity: ${isEnviado ? '0.8' : '1'};
+          border: 1px solid ${isEnviado ? 'var(--border-subtle)' : 'var(--border-default)'}; 
+          border-radius: var(--radius-lg); 
+          padding: 1.1rem 1.25rem; 
+          display: flex; 
+          justify-content: space-between; 
+          align-items: center; 
+          flex-wrap: wrap; 
+          gap: 0.75rem;
+          cursor: pointer;
+          box-shadow: ${isEnviado ? 'none' : 'var(--shadow-sm)'};
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        ">
+          <div style="flex: 1; min-width: 250px;">
+            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.35rem; flex-wrap: wrap;">
+              <span style="font-weight: 800; color: var(--text-primary); font-size: 0.95rem;">#${orderNum}</span>
+              
+              <!-- Selector Dinámico de los 3 Estados Exclusivos -->
+              <select class="select-order-status" data-order-id="${ped.id}" onclick="event.stopPropagation();" style="
+                background-color: ${statusCfg.bg};
+                color: ${statusCfg.color};
+                border: 1px solid ${statusCfg.border};
+                border-radius: var(--radius-full);
+                font-size: 0.75rem;
+                font-weight: 700;
+                padding: 0.25rem 0.6rem;
+                cursor: pointer;
+                outline: none;
+                transition: all 0.2s ease;
+              ">
+                <option value="pendiente" ${normStatus === 'pendiente' ? 'selected' : ''}>🟡 Pendiente</option>
+                <option value="preparado" ${normStatus === 'preparado' ? 'selected' : ''}>🔵 Preparado</option>
+                <option value="enviado" ${normStatus === 'enviado' ? 'selected' : ''}>🟢 Enviado</option>
+              </select>
+
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: capitalize;">${ped.modalidad || 'Delivery'}</span>
+              <button type="button" onclick="event.stopPropagation(); window.mostrarModalDetallePedido('${ped.id}');" class="btn-ver-detalle" style="
+                border: none;
+                font-size: 0.75rem; 
+                font-weight: 700;
+                color: #ffffff; 
+                background: #ef4444; 
+                padding: 0.25rem 0.75rem; 
+                border-radius: var(--radius-full); 
+                margin-left: auto;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.3rem;
+                box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
+                transition: transform 0.15s ease;
+              " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                Ver Detalle 🔍
+              </button>
+            </div>
+
+            <p style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">${clienteNombre} <span style="font-weight: 400; color: var(--text-muted); font-size: 0.8rem;">• ${direccionMesa}</span></p>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">${resumenItems}</p>
+          </div>
+
+          <div style="text-align: right;">
+            <div style="font-size: 1.25rem; font-weight: 800; color: #059669;">$${Number(ped.total || 0).toLocaleString('es-AR')}</div>
+            <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">${metodoPago}</span>
+          </div>
+        </div>
+      `;
     };
 
     container.innerHTML = `
       <div style="min-height: 100vh; padding-bottom: 5rem; background-color: var(--bg-primary);">
         
         <!-- Top App Bar -->
-        <header style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border-default); position: sticky; top: 0; z-index: 40; padding: 0.85rem 1.25rem;">
+        <header style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-default); position: sticky; top: 0; z-index: 40; padding: 0.85rem 1.25rem; box-shadow: 0 2px 10px -2px rgba(15, 23, 42, 0.04);">
           <div style="max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
               <div style="width: 38px; height: 38px; border-radius: var(--radius-md); background: var(--accent-light); color: var(--accent); display: flex; align-items: center; justify-content: center;">
                 <i data-lucide="store" class="lucide"></i>
               </div>
               <div>
-                <h1 style="font-size: 1.1rem; font-weight: 700; line-height: 1.2;">${store.nombre}</h1>
+                <h1 style="font-size: 1.1rem; font-weight: 700; line-height: 1.2; color: var(--text-primary);">${store.nombre}</h1>
                 <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--text-secondary);">
                   <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: var(--success);"></span>
                   Panel Dueño Activo
@@ -394,39 +612,45 @@ export async function renderOwnerPanel(param1, param2) {
             
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
               
-              <div class="card" style="border-left: 4px solid var(--accent);">
+              <div class="card" style="border: 1px solid var(--border-default); border-radius: var(--radius-xl); box-shadow: var(--shadow-md); padding: 1.25rem; background: var(--bg-card);">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">Arqueo de Caja Hoy</span>
-                  <i data-lucide="banknote" style="color: var(--accent);"></i>
+                  <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.04em;">Arqueo de Caja Hoy</span>
+                  <div style="width: 38px; height: 38px; border-radius: var(--radius-md); background: rgba(239, 68, 68, 0.1); color: #ef4444; display: flex; align-items: center; justify-content: center;">
+                    <i data-lucide="banknote" class="lucide"></i>
+                  </div>
                 </div>
-                <h3 style="font-size: 1.85rem; font-weight: 800; margin-top: 0.5rem; color: var(--text-primary);">$${totalVentas.toLocaleString('es-AR')}</h3>
+                <h3 style="font-size: 1.85rem; font-weight: 800; margin-top: 0.6rem; color: var(--text-primary);">$${totalVentas.toLocaleString('es-AR')}</h3>
                 <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">Total recaudado del turno</p>
               </div>
 
-              <div class="card" style="border-left: 4px solid var(--success);">
+              <div class="card" style="border: 1px solid var(--border-default); border-radius: var(--radius-xl); box-shadow: var(--shadow-md); padding: 1.25rem; background: var(--bg-card);">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">Pedidos en Curso</span>
-                  <i data-lucide="bike" style="color: var(--success);"></i>
+                  <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.04em;">Pedidos en Curso</span>
+                  <div style="width: 38px; height: 38px; border-radius: var(--radius-md); background: rgba(5, 150, 105, 0.1); color: #059669; display: flex; align-items: center; justify-content: center;">
+                    <i data-lucide="bike" class="lucide"></i>
+                  </div>
                 </div>
-                <h3 id="contador-pedidos-en-curso" style="font-size: 1.85rem; font-weight: 800; margin-top: 0.5rem; color: var(--text-primary);">${pedidosPendientes}</h3>
-                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">Pendientes y en preparación</p>
+                <h3 id="contador-pedidos-en-curso" style="font-size: 1.85rem; font-weight: 800; margin-top: 0.6rem; color: var(--text-primary);">${pedidosActivosCount}</h3>
+                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">Pendientes y preparados</p>
               </div>
 
-              <div class="card" style="border-left: 4px solid #60a5fa;">
+              <div class="card" style="border: 1px solid var(--border-default); border-radius: var(--radius-xl); box-shadow: var(--shadow-md); padding: 1.25rem; background: var(--bg-card);">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">Total de Pedidos</span>
-                  <i data-lucide="shopping-bag" style="color: #60a5fa;"></i>
+                  <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.04em;">Total de Pedidos</span>
+                  <div style="width: 38px; height: 38px; border-radius: var(--radius-md); background: rgba(59, 130, 246, 0.1); color: #2563eb; display: flex; align-items: center; justify-content: center;">
+                    <i data-lucide="shopping-bag" class="lucide"></i>
+                  </div>
                 </div>
-                <h3 style="font-size: 1.85rem; font-weight: 800; margin-top: 0.5rem; color: var(--text-primary);">${pedidosHoy.length}</h3>
+                <h3 style="font-size: 1.85rem; font-weight: 800; margin-top: 0.6rem; color: var(--text-primary);">${pedidosHoy.length}</h3>
                 <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">Historial registrado</p>
               </div>
 
             </div>
 
-            <!-- Listado de Pedidos Activos -->
-            <div class="card" style="padding: 0; overflow: hidden;">
+            <!-- Listado de Pedidos Activos y Despachados -->
+            <div class="card" style="padding: 0; overflow: hidden; background: var(--bg-card); border: 1px solid var(--border-default); border-radius: var(--radius-xl);">
               <div style="padding: 1.25rem; border-bottom: 1px solid var(--border-default); display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+                <h3 style="font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary);">
                   <i data-lucide="clock" class="lucide-sm" style="color: var(--accent);"></i>
                   Pedidos Recientes
                 </h3>
@@ -441,76 +665,29 @@ export async function renderOwnerPanel(param1, param2) {
                   </div>
                 ` : `
                   <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                    ${pedidosHoy.map(ped => {
-                      const orderNum = ped.numero_orden || ped.id || 'PED';
-                      const clienteNombre = ped.cliente || ped.cliente_nombre || 'Cliente';
-                      const direccionMesa = ped.direccion_o_mesa || ped.direccion || ped.mesa || (ped.modalidad === 'mesa' ? 'En Mesa' : 'Retiro en el local');
-                      const metodoPago = ped.pago || ped.metodo_pago || 'Efectivo';
-                      const currentStatus = (ped.estado || 'pendiente').toLowerCase();
-                      const statusCfg = getStatusConfig(currentStatus);
-                      
-                      let resumenItems = '';
-                      if (Array.isArray(ped.items) && ped.items.length > 0) {
-                        resumenItems = ped.items.map(i => `${i.cantidad || 1}x ${i.nombre || i.name}`).join(', ');
-                      } else {
-                        resumenItems = ped.items_resumen || 'Ver detalle de productos';
-                      }
+                    <!-- SECCIÓN PRIORIDAD ALTA: PEDIDOS ACTIVOS (PENDIENTES Y PREPARADOS) -->
+                    ${listActivos.length === 0 ? `
+                      <div style="text-align: center; padding: 1.5rem 1rem; background: var(--bg-subtle); border-radius: var(--radius-lg); border: 1px dashed var(--border-default); color: var(--text-secondary);">
+                        <i data-lucide="check-circle" class="lucide-md" style="color: var(--success); margin-bottom: 0.35rem;"></i>
+                        <p style="font-size: 0.85rem; font-weight: 600;">¡Cocina al día! No hay pedidos pendientes ni en preparación.</p>
+                      </div>
+                    ` : listActivos.map(ped => renderCardPedidoRow(ped, false)).join('')}
 
-                      return `
-                        <div class="card-pedido-row" data-order-id="${ped.id}" data-pedido-id="${ped.id}" style="
-                          background: var(--bg-primary); 
-                          border: 1px solid var(--border-subtle); 
-                          border-radius: var(--radius-md); 
-                          padding: 1.1rem 1.25rem; 
-                          display: flex; 
-                          justify-content: space-between; 
-                          align-items: center; 
-                          flex-wrap: wrap; 
-                          gap: 0.75rem;
-                          cursor: pointer;
-                          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                        " onmouseover="this.style.borderColor='rgba(245, 158, 11, 0.4)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.4)';" onmouseout="this.style.borderColor='var(--border-subtle)'; this.style.transform='translateY(0)'; this.style.boxShadow='none';">
-                          <div style="flex: 1; min-width: 250px;">
-                            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.35rem; flex-wrap: wrap;">
-                              <span style="font-weight: 800; color: var(--text-primary); font-size: 0.95rem;">#${orderNum}</span>
-                              
-                              <!-- Selector Dinámico de Estado -->
-                              <select class="select-order-status" data-order-id="${ped.id}" onclick="event.stopPropagation();" style="
-                                background-color: ${statusCfg.bg};
-                                color: ${statusCfg.color};
-                                border: 1px solid ${statusCfg.border};
-                                border-radius: var(--radius-full);
-                                font-size: 0.75rem;
-                                font-weight: 700;
-                                padding: 0.25rem 0.6rem;
-                                cursor: pointer;
-                                outline: none;
-                                transition: all 0.2s ease;
-                              ">
-                                <option value="pendiente" ${currentStatus === 'pendiente' ? 'selected' : ''}>🟡 Pendiente</option>
-                                <option value="en_preparacion" ${currentStatus === 'en_preparacion' ? 'selected' : ''}>🔵 En preparación</option>
-                                <option value="en_camino" ${currentStatus === 'en_camino' ? 'selected' : ''}>🟣 En camino / Listo</option>
-                                <option value="entregado" ${currentStatus === 'entregado' ? 'selected' : ''}>🟢 Entregado</option>
-                                <option value="cancelado" ${currentStatus === 'cancelado' ? 'selected' : ''}>🔴 Cancelado</option>
-                              </select>
-
-                              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: capitalize;">${ped.modalidad || 'Delivery'}</span>
-                              <span style="font-size: 0.7rem; color: var(--accent); background: var(--accent-light); padding: 0.15rem 0.5rem; border-radius: var(--radius-full); margin-left: auto;">
-                                Ver Detalle 🔍
-                              </span>
-                            </div>
-
-                            <p style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">${clienteNombre} <span style="font-weight: 400; color: var(--text-muted); font-size: 0.8rem;">• ${direccionMesa}</span></p>
-                            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">${resumenItems}</p>
-                          </div>
-
-                          <div style="text-align: right;">
-                            <div style="font-size: 1.25rem; font-weight: 800; color: var(--accent);">$${Number(ped.total || 0).toLocaleString('es-AR')}</div>
-                            <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">${metodoPago}</span>
-                          </div>
+                    <!-- SECCIÓN DESPLAZAMIENTO AL FONDO: PEDIDOS DESPACHADOS / ENVIADOS -->
+                    ${listEnviados.length > 0 ? `
+                      <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border-default);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; padding: 0 0.25rem;">
+                          <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem;">
+                            <i data-lucide="check-check" class="lucide-sm" style="color: var(--success);"></i>
+                            Pedidos Despachados / Enviados (${listEnviados.length})
+                          </span>
+                          <span style="font-size: 0.72rem; color: var(--text-muted);">Completados del turno</span>
                         </div>
-                      `;
-                    }).join('')}
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                          ${listEnviados.map(ped => renderCardPedidoRow(ped, true)).join('')}
+                        </div>
+                      </div>
+                    ` : ''}
                   </div>
                 `}
               </div>
@@ -542,28 +719,28 @@ export async function renderOwnerPanel(param1, param2) {
                   </button>
                 </div>
               ` : productos.map(p => `
-                <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; gap: 0.75rem;">
+                <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; gap: 0.75rem; background: #ffffff; border: 1px solid var(--border-default); border-radius: var(--radius-xl);">
                   <div>
                     <!-- Miniatura de Imagen del Plato -->
-                    <div style="width: 100%; aspect-ratio: 16 / 9; max-height: 160px; background: var(--bg-primary); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem; border: 1px solid var(--border-subtle); overflow: hidden; position: relative;">
+                    <div style="width: 100%; aspect-ratio: 16 / 9; max-height: 160px; background: #f8fafc; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem; border: 1px solid var(--border-subtle); overflow: hidden; position: relative;">
                       ${p.imagen_url ? `
                         <img src="${p.imagen_url}" alt="${p.nombre}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; border-radius: inherit;" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                        <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; background: radial-gradient(circle at center, rgba(245, 158, 11, 0.1) 0%, var(--bg-primary) 100%);">
+                        <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; background: radial-gradient(circle at center, rgba(239, 68, 68, 0.08) 0%, #f1f5f9 100%);">
                           ${p.emoji ? `<span style="font-size: 2.75rem;">${p.emoji}</span>` : `<i data-lucide="utensils" class="lucide-lg" style="color: var(--accent);"></i>`}
                         </div>
                       ` : (p.emoji ? `
-                        <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(245, 158, 11, 0.1) 0%, var(--bg-primary) 100%);">
+                        <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(239, 68, 68, 0.08) 0%, #f1f5f9 100%);">
                           <span style="font-size: 2.75rem;">${p.emoji}</span>
                         </div>
                       ` : `
-                        <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: var(--accent); background: var(--bg-primary);">
+                        <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: var(--accent); background: #f8fafc;">
                           <i data-lucide="utensils" class="lucide-lg"></i>
                         </div>
                       `)}
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
                       <h4 style="font-weight: 700; font-size: 1rem; color: var(--text-primary);">${p.nombre}</h4>
-                      <span style="font-weight: 800; color: var(--accent);">$${Number(p.precio || 0).toLocaleString('es-AR')}</span>
+                      <span style="font-weight: 800; color: #059669;">$${Number(p.precio || 0).toLocaleString('es-AR')}</span>
                     </div>
                     <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.35rem; line-height: 1.4;">${p.descripcion || 'Sin descripción'}</p>
                   </div>
@@ -628,9 +805,9 @@ export async function renderOwnerPanel(param1, param2) {
             <div style="display: flex; flex-direction: column; gap: 1.5rem; max-width: 650px; margin: 0 auto;">
               
               <!-- SECCIÓN 1: BANNER DE OFERTAS Y PROMOCIONES -->
-              <div class="card" style="border: 1px solid rgba(245, 158, 11, 0.3); background: linear-gradient(180deg, rgba(245, 158, 11, 0.05) 0%, var(--bg-card) 100%);">
+              <div class="card" style="border: 1px solid rgba(239, 68, 68, 0.25); background: linear-gradient(180deg, rgba(239, 68, 68, 0.04) 0%, #ffffff 100%);">
                 <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
-                  <div style="background: rgba(245, 158, 11, 0.2); color: var(--accent); width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                  <div style="background: rgba(239, 68, 68, 0.1); color: var(--accent); width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
                     <i data-lucide="flame" class="lucide-sm"></i>
                   </div>
                   <div>
@@ -796,10 +973,10 @@ export async function renderOwnerPanel(param1, param2) {
             </form>
         <!-- Modal de Detalle Completo de Pedido -->
         <div id="modal-order-detail" class="modal-overlay" style="display: none;">
-          <div class="modal-content" style="max-width: 560px; padding: 0; overflow: hidden; border-radius: var(--radius-xl);">
+          <div class="modal-content" style="max-width: 560px; padding: 0; overflow: hidden; border-radius: var(--radius-xl); background: #ffffff;">
             
             <!-- Cabecera del Modal -->
-            <div style="padding: 1.25rem 1.5rem; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border-bottom: 1px solid var(--border-default); display: flex; justify-content: space-between; align-items: center;">
+            <div style="padding: 1.25rem 1.5rem; background: #ffffff; border-bottom: 1px solid var(--border-default); display: flex; justify-content: space-between; align-items: center;">
               <div>
                 <div style="display: flex; align-items: center; gap: 0.6rem;">
                   <h3 id="modal-detail-num" style="font-size: 1.2rem; font-weight: 800; color: var(--text-primary);">Pedido #---</h3>
@@ -816,24 +993,25 @@ export async function renderOwnerPanel(param1, param2) {
             <div style="padding: 1.5rem; max-height: calc(85vh - 140px); overflow-y: auto; display: flex; flex-direction: column; gap: 1.25rem;">
               
               <!-- Tarjeta de Datos del Cliente -->
-              <div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1rem 1.25rem;">
+              <div style="background: #f8fafc; border: 1px solid var(--border-default); border-radius: var(--radius-lg); padding: 1rem 1.25rem;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem;">
                   <div>
                     <h4 id="modal-detail-cliente" style="font-size: 1rem; font-weight: 700; color: var(--text-primary);">Cliente</h4>
                     <p id="modal-detail-direccion" style="font-size: 0.825rem; color: var(--text-secondary); margin-top: 0.25rem; line-height: 1.4;">Dirección / Mesa</p>
                     <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.4rem;">
                       <span id="modal-detail-modalidad" style="font-size: 0.75rem; color: var(--accent); font-weight: 700; background: var(--accent-light); padding: 0.15rem 0.5rem; border-radius: var(--radius-full); text-transform: uppercase;">DELIVERY</span>
-                      <span id="modal-detail-pago-badge" style="font-size: 0.75rem; color: var(--text-muted); background: var(--bg-card); padding: 0.15rem 0.5rem; border-radius: var(--radius-full);">EFECTIVO</span>
+                      <span id="modal-detail-pago-badge" style="font-size: 0.75rem; color: var(--text-muted); background: #ffffff; border: 1px solid var(--border-default); padding: 0.15rem 0.5rem; border-radius: var(--radius-full);">EFECTIVO</span>
                     </div>
                   </div>
                   
                   <a id="btn-modal-whatsapp" href="#" target="_blank" class="btn" style="
-                    background: rgba(16, 185, 129, 0.15); 
-                    color: #34d399; 
-                    border: 1px solid rgba(16, 185, 129, 0.3);
+                    background: rgba(5, 150, 105, 0.1); 
+                    color: #047857; 
+                    border: 1px solid #a7f3d0;
                     padding: 0.4rem 0.75rem;
                     font-size: 0.775rem;
                     white-space: nowrap;
+                    font-weight: 700;
                   ">
                     <i data-lucide="message-circle" class="lucide-sm"></i>
                     <span>Chatear</span>
@@ -846,13 +1024,13 @@ export async function renderOwnerPanel(param1, param2) {
                 <h4 style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.6rem;">
                   Ítems del Pedido
                 </h4>
-                <div id="modal-detail-items-list" style="display: flex; flex-direction: column; gap: 0.5rem; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 0.75rem 1rem;">
+                <div id="modal-detail-items-list" style="display: flex; flex-direction: column; gap: 0.5rem; background: #ffffff; border: 1px solid var(--border-default); border-radius: var(--radius-lg); padding: 0.75rem 1rem;">
                   <!-- Render dinámico de items -->
                 </div>
               </div>
 
               <!-- Resumen Financiero -->
-              <div style="background: var(--bg-card-hover); border-radius: var(--radius-lg); padding: 1rem 1.25rem; border: 1px solid var(--border-subtle);">
+              <div style="background: #f8fafc; border-radius: var(--radius-lg); padding: 1rem 1.25rem; border: 1px solid var(--border-default);">
                 <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.35rem;">
                   <span>Subtotal productos:</span>
                   <span id="modal-detail-subtotal" style="font-weight: 600; color: var(--text-primary);">$0</span>
@@ -1120,17 +1298,25 @@ export async function renderOwnerPanel(param1, param2) {
       }
     });
 
-    // Cambio Dinámico de Estado de Pedidos
+    // Cambio Dinámico de Estado de Pedidos (3 Estados Exclusivos)
     document.querySelectorAll('.select-order-status').forEach(select => {
       select.addEventListener('change', async (e) => {
+        e.stopPropagation();
         const orderId = select.getAttribute('data-order-id');
         const nuevoEstado = select.value;
         const config = getStatusConfig(nuevoEstado);
 
-        // Actualización optimista de estilos
+        // Actualización optimista de estilos del select
         select.style.backgroundColor = config.bg;
         select.style.color = config.color;
         select.style.borderColor = config.border;
+
+        // Actualizar estado en memoria local inmediatamente
+        const targetPed = pedidosHoy.find(p => String(p.id) === String(orderId));
+        if (targetPed) {
+          targetPed.estado = nuevoEstado;
+        }
+        window._pedidosCache = pedidosHoy;
 
         try {
           const { error } = await supabase
@@ -1142,23 +1328,14 @@ export async function renderOwnerPanel(param1, param2) {
             console.error("Error al actualizar estado del pedido en Supabase:", error);
             alert('No se pudo actualizar el estado: ' + error.message);
             await cargarPedidos(store.slug);
-          } else {
-            // Actualizar estado en memoria local
-            const targetPed = pedidosHoy.find(p => String(p.id) === String(orderId));
-            if (targetPed) {
-              targetPed.estado = nuevoEstado;
-            }
-
-            // Recalcular contador superior de Pedidos en Curso (solo pendiente o en_preparacion)
-            const countEnCurso = pedidosHoy.filter(p => p.estado === 'pendiente' || p.estado === 'en_preparacion' || !p.estado).length;
-            const counterEl = document.getElementById('contador-pedidos-en-curso');
-            if (counterEl) {
-              counterEl.textContent = countEnCurso;
-            }
+            return;
           }
         } catch (err) {
           console.error("Excepción al actualizar estado del pedido:", err);
         }
+
+        // Reordenar automáticamente: los pedidos en 'enviado' descienden al fondo y se actualiza contador en curso
+        renderDashboard();
       });
     });
 
@@ -1174,8 +1351,8 @@ export async function renderOwnerPanel(param1, param2) {
       const clienteNombre = pedido.cliente || pedido.cliente_nombre || 'Cliente Web';
       const direccionMesa = pedido.direccion_o_mesa || pedido.direccion || pedido.mesa || (pedido.modalidad === 'mesa' ? 'En Mesa' : 'Retiro en el local');
       const metodoPago = pedido.pago || pedido.metodo_pago || 'Efectivo';
-      const currentStatus = (pedido.estado || 'pendiente').toLowerCase();
-      const statusCfg = getStatusConfig(currentStatus);
+      const normStatus = normalizeStatus(pedido.estado);
+      const statusCfg = getStatusConfig(normStatus);
 
       // Fecha y hora formateada
       let fechaHora = 'Recién';
@@ -1243,18 +1420,16 @@ export async function renderOwnerPanel(param1, param2) {
       document.getElementById('modal-detail-envio').textContent = envioVal > 0 ? `$${envioVal.toLocaleString('es-AR')}` : 'Sin cargo / En local';
       document.getElementById('modal-detail-total').textContent = `$${totalVal.toLocaleString('es-AR')}`;
 
-      // Botones de cambio de estado en modal
+      // Botones de cambio de estado en modal (3 Estados Exclusivos)
       const btnContainer = document.getElementById('modal-status-buttons-container');
       const allStatuses = [
         { key: 'pendiente', label: '🟡 Pendiente' },
-        { key: 'en_preparacion', label: '🔵 En preparación' },
-        { key: 'en_camino', label: '🟣 En camino' },
-        { key: 'entregado', label: '🟢 Entregado' },
-        { key: 'cancelado', label: '🔴 Cancelar' }
+        { key: 'preparado', label: '🔵 Preparado' },
+        { key: 'enviado', label: '🟢 Enviado' }
       ];
 
       btnContainer.innerHTML = allStatuses.map(s => {
-        const isCurrent = currentStatus === s.key;
+        const isCurrent = normStatus === s.key;
         return `
           <button type="button" class="btn btn-change-status-modal" data-status="${s.key}" style="
             font-size: 0.75rem;
@@ -1286,8 +1461,11 @@ export async function renderOwnerPanel(param1, param2) {
               alert('Error al actualizar estado: ' + error.message);
             } else {
               pedido.estado = nuevoSt;
+              const target = pedidosHoy.find(p => String(p.id) === String(pedido.id));
+              if (target) target.estado = nuevoSt;
+              window._pedidosCache = pedidosHoy;
               openOrderDetailModal(pedido); // refresca modal
-              await cargarPedidos(store.slug, true); // refresca listado sin parpadeo
+              renderDashboard(); // reordena listado automáticamente y actualiza contadores
             }
           } catch (e) {
             console.error("Error al actualizar estado desde modal:", e);

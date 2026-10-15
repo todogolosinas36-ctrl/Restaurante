@@ -32,8 +32,8 @@ async function initRouter() {
 
     // Fallback si no hay ningún comercio en la tabla
     appContainer.innerHTML = `
-      <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; text-align: center; background: #0b1120;">
-        <div class="card" style="max-width: 480px; padding: 2.5rem 2rem;">
+      <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; text-align: center; background: var(--bg-primary);">
+        <div class="card" style="max-width: 480px; padding: 2.5rem 2rem; border-radius: var(--radius-xl); box-shadow: var(--shadow-lg);">
           <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--accent-light); color: var(--accent); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem auto;">
             <i data-lucide="store" class="lucide-lg"></i>
           </div>

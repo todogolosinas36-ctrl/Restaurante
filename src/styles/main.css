@@ -1,17 +1,74 @@
 /* ==========================================================================
-   Design System & Theme Variables
-   Modo Oscuro Nativo (#0f172a / #020617), Acentos Ámbar (#f59e0b)
-   PROHIBIDO el uso de emojis: Lucide vector icons en toda la UI
+   Dual Visual Theme System
+   - data-theme="dark"   : "Gourmet Dark / Luxury Glass" (Oscuro & Dorado)
+   - data-theme="light"  : "Clean Light / Modern Delivery" (Delivery Claro & Coral)
    ========================================================================== */
 
-:root {
-  --bg-primary: #0b1120;
-  --bg-secondary: #0f172a;
-  --bg-card: #1e293b;
-  --bg-card-hover: #243248;
-  --bg-elevated: #334155;
-  --border-subtle: #1e293b;
-  --border-default: #334155;
+/* --------------------------------------------------------------------------
+   1. Theme 2: Clean Light / Modern Delivery (Default & data-theme="light")
+   -------------------------------------------------------------------------- */
+:root,
+[data-theme="light"] {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  --bg-elevated: #ffffff;
+  --bg-subtle: #f1f5f9;
+  --border-subtle: #f1f5f9;
+  --border-default: #e2e8f0;
+  --border-focus: #ef4444;
+
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  
+  --accent: #ef4444;
+  --accent-hover: #dc2626;
+  --accent-light: rgba(239, 68, 68, 0.08);
+  --accent-contrast: #ffffff;
+  
+  --price-color: #059669;
+  --price-bg: transparent;
+
+  --success: #059669;
+  --success-light: rgba(5, 150, 105, 0.1);
+  --warning: #f59e0b;
+  --warning-light: rgba(245, 158, 11, 0.12);
+  --danger: #ef4444;
+  --danger-light: rgba(239, 68, 68, 0.1);
+  --info: #3b82f6;
+  --info-light: rgba(59, 130, 246, 0.1);
+
+  --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+  --shadow-lg: 0 10px 25px -3px rgba(15, 23, 42, 0.08), 0 4px 10px -2px rgba(15, 23, 42, 0.04);
+  --shadow-glow: 0 6px 20px -2px rgba(239, 68, 68, 0.35);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --------------------------------------------------------------------------
+   2. Theme 1: Gourmet Dark / Luxury Glass (data-theme="dark")
+   -------------------------------------------------------------------------- */
+[data-theme="dark"] {
+  --bg-primary: #0b0f17;
+  --bg-secondary: #161b22;
+  --bg-card: #161b22;
+  --bg-card-hover: #1e293b;
+  --bg-elevated: #1e293b;
+  --bg-subtle: #1e293b;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.1);
   --border-focus: #f59e0b;
 
   --text-primary: #f8fafc;
@@ -21,28 +78,30 @@
   --accent: #f59e0b;
   --accent-hover: #d97706;
   --accent-light: rgba(245, 158, 11, 0.15);
+  --accent-contrast: #0b0f17;
   
+  --price-color: #f59e0b;
+  --price-bg: transparent;
+
   --success: #10b981;
   --success-light: rgba(16, 185, 129, 0.15);
-  --danger: #ef4444;
-  --danger-light: rgba(239, 68, 68, 0.15);
-  
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
-  --shadow-glow: 0 0 25px -5px rgba(245, 158, 11, 0.25);
+  --warning: #f59e0b;
+  --warning-light: rgba(245, 158, 11, 0.15);
+  --danger: #f43f5e;
+  --danger-light: rgba(244, 63, 94, 0.15);
+  --info: #38bdf8;
+  --info-light: rgba(56, 189, 248, 0.15);
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --radius-full: 9999px;
-  
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 10px 30px -10px rgba(0, 0, 0, 0.6), 0 0 15px rgba(245, 158, 11, 0.04);
+  --shadow-lg: 0 20px 40px -15px rgba(0, 0, 0, 0.8);
+  --shadow-glow: 0 4px 20px rgba(245, 158, 11, 0.4);
 }
 
+
+/* ==========================================================================
+   Base Elements & Reset
+   ========================================================================== */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -57,6 +116,7 @@ body {
   min-height: 100vh;
   line-height: 1.5;
   overflow-x: hidden;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
 }
 
 /* Custom Scrollbars */
@@ -75,7 +135,9 @@ body {
   background: var(--accent);
 }
 
-/* Button & interactive components */
+/* ==========================================================================
+   Buttons & Interactive Controls
+   ========================================================================== */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -83,7 +145,7 @@ body {
   gap: 0.5rem;
   padding: 0.65rem 1.25rem;
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 700;
   border-radius: var(--radius-md);
   border: 1px solid transparent;
   cursor: pointer;
@@ -93,7 +155,9 @@ body {
 
 .btn-primary {
   background-color: var(--accent);
-  color: #0b1120;
+  color: var(--accent-contrast, #ffffff);
+  font-weight: 700;
+  border: 1px solid transparent;
 }
 .btn-primary:hover {
   background-color: var(--accent-hover);
@@ -103,17 +167,17 @@ body {
 .btn-secondary {
   background-color: var(--bg-card);
   color: var(--text-primary);
-  border-color: var(--border-default);
+  border: 1px solid var(--border-default);
 }
 .btn-secondary:hover {
   background-color: var(--bg-card-hover);
-  border-color: var(--text-secondary);
+  border-color: var(--accent);
 }
 
 .btn-danger {
   background-color: var(--danger-light);
-  color: #fca5a5;
-  border-color: rgba(239, 68, 68, 0.3);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
 .btn-danger:hover {
   background-color: var(--danger);
@@ -135,33 +199,36 @@ body {
 .btn-icon:hover {
   color: var(--accent);
   border-color: var(--accent);
-  background-color: var(--bg-card-hover);
 }
 
 /* Form inputs */
 .input-field {
   width: 100%;
-  background-color: var(--bg-primary);
+  background-color: var(--bg-card);
   border: 1px solid var(--border-default);
   color: var(--text-primary);
   padding: 0.65rem 0.9rem;
   border-radius: var(--radius-md);
   font-size: 0.9rem;
   outline: none;
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+.input-field::placeholder {
+  color: var(--text-muted);
 }
 .input-field:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-light);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-light);
 }
 
 /* Cards & Badges */
 .card {
   background-color: var(--bg-card);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
   padding: 1.25rem;
   box-shadow: var(--shadow-md);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 
 .badge {
@@ -171,26 +238,26 @@ body {
   padding: 0.25rem 0.6rem;
   border-radius: var(--radius-full);
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 .badge-active {
   background-color: var(--success-light);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: var(--success);
+  border: 1px solid var(--success);
 }
 .badge-inactive {
   background-color: var(--danger-light);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: var(--danger);
+  border: 1px solid var(--danger);
 }
 
-/* Modal Overlay */
+/* Modal Overlay & Content */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(2, 6, 23, 0.8);
+  background-color: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -208,17 +275,18 @@ body {
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: var(--shadow-lg);
+  color: var(--text-primary);
 }
 
-/* Fixed Bottom Navigation for Owner and App */
+/* Bottom Navigation */
 .bottom-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  background-color: rgba(15, 23, 42, 0.95);
-  backdrop-filter: blur(12px);
+  background-color: var(--bg-card);
   border-top: 1px solid var(--border-default);
+  box-shadow: 0 -4px 20px -2px rgba(0, 0, 0, 0.05);
   display: flex;
   justify-content: space-around;
   padding: 0.5rem 0;
@@ -231,7 +299,7 @@ body {
   gap: 0.25rem;
   background: none;
   border: none;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
@@ -239,14 +307,52 @@ body {
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
 }
+.bottom-nav-item:hover {
+  color: var(--text-primary);
+}
 .bottom-nav-item.active {
   color: var(--accent);
+  font-weight: 700;
 }
 .bottom-nav-item.active svg {
   stroke: var(--accent);
 }
 
-/* Utilities */
+/* Category Card */
+.category-card {
+  position: relative;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 0.2s ease, 
+              box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.category-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-md);
+}
+
+.category-card:active {
+  transform: scale(0.98);
+}
+
+/* Price Tag Utility */
+.product-price-tag {
+  color: var(--price-color);
+  font-weight: 800;
+  font-size: 1.15rem;
+  white-space: nowrap;
+}
+
+/* Icons */
 .lucide {
   width: 1.25rem;
   height: 1.25rem;
@@ -266,7 +372,6 @@ body {
   height: 2.5rem;
 }
 
-/* Animations & Category Cards */
 @keyframes fadeInView {
   from {
     opacity: 0;
@@ -277,32 +382,190 @@ body {
     transform: translateY(0);
   }
 }
-
 .animate-fade-in {
   animation: fadeInView 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.category-card {
-  position: relative;
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xl);
+/* ==========================================================================
+   THEME-SPECIFIC OVERRIDES & POLISH
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   THEME 1: GOURMET DARK / LUXURY GLASS
+   -------------------------------------------------------------------------- */
+[data-theme="dark"] .card,
+[data-theme="dark"] .category-card,
+[data-theme="dark"] .modal-content {
+  background: rgba(22, 27, 34, 0.88) !important;
+  backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-theme="dark"] .btn-primary {
+  background-color: #f59e0b !important;
+  color: #0b0f17 !important;
+  font-weight: 800 !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35) !important;
+}
+[data-theme="dark"] .btn-primary:hover {
+  background-color: #d97706 !important;
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5) !important;
+}
+
+[data-theme="dark"] .btn-secondary {
+  background-color: rgba(30, 41, 59, 0.6) !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+[data-theme="dark"] .btn-secondary:hover {
+  background-color: rgba(51, 65, 85, 0.8) !important;
+  border-color: rgba(245, 158, 11, 0.5) !important;
+}
+
+[data-theme="dark"] .input-field {
+  background-color: rgba(22, 27, 34, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #f8fafc !important;
+}
+[data-theme="dark"] .input-field:focus {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2) !important;
+}
+
+[data-theme="dark"] .bottom-nav {
+  background-color: rgba(11, 15, 23, 0.92) !important;
+  backdrop-filter: blur(16px) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .product-price-tag {
+  color: #f59e0b !important;
+}
+
+[data-theme="dark"] #btn-open-cart {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  color: #0b0f17 !important;
+  box-shadow: 0 10px 25px -4px rgba(245, 158, 11, 0.5) !important;
+}
+[data-theme="dark"] #btn-open-cart p,
+[data-theme="dark"] #btn-open-cart span {
+  color: #0b0f17 !important;
+  font-weight: 900 !important;
+}
+
+[data-theme="dark"] table thead tr {
+  background-color: #161b22 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+[data-theme="dark"] table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+[data-theme="dark"] table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* ==========================================================================
+   Super-Admin Desktop Layout & Grid Utilities
+   ========================================================================== */
+.max-w-7xl {
+  max-width: 80rem !important; /* 1280px */
+}
+.mx-auto {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+.px-6 {
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
+}
+.py-8 {
+  padding-top: 2rem !important;
+  padding-bottom: 2rem !important;
+}
+.w-full {
+  width: 100% !important;
+}
+.gap-6 {
+  gap: 1.5rem !important;
+}
+
+.superadmin-kpi-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .md\:grid-cols-3,
+  .superadmin-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+.superadmin-table-container {
+  width: 100%;
   overflow: hidden;
-  cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
-              border-color 0.2s ease, 
-              box-shadow 0.2s ease;
-  display: flex;
-  flex-direction: column;
+  border-radius: inherit;
 }
 
-.category-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(245, 158, 11, 0.4);
-  box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.6), 0 0 15px -3px rgba(245, 158, 11, 0.15);
+.table-fixed {
+  table-layout: fixed !important;
 }
 
-.category-card:active {
-  transform: scale(0.98);
+.superadmin-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.85rem;
 }
+
+.superadmin-table th {
+  padding: 0.75rem 0.65rem;
+  background-color: var(--bg-subtle);
+  border-bottom: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.superadmin-table td {
+  padding: 0.65rem 0.65rem;
+  border-bottom: 1px solid var(--border-default);
+  vertical-align: middle;
+}
+
+.superadmin-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.superadmin-table tbody tr:hover {
+  background-color: var(--bg-card-hover);
+}
+
+.gap-1 {
+  gap: 0.25rem !important;
+}
+
+.space-x-1 > * + * {
+  margin-left: 0.25rem !important;
+}
+
+.px-3 {
+  padding-left: 0.75rem !important;
+  padding-right: 0.75rem !important;
+}
+
+.py-3 {
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
 

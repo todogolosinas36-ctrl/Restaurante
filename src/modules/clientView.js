@@ -50,7 +50,7 @@ export async function renderClientView(param1, param2) {
     if (window.lucide) window.lucide.createIcons();
   };
 
-  // 1. Cargar datos del comercio por slug
+  // 1. Cargar datos del comercio por slug asegurando promo_activa y promo_texto (registro completo *)
   const urlLocal = new URLSearchParams(window.location.search).get('local');
   const slugParam = (storeSlug || urlLocal || '').trim().toLowerCase();
 
@@ -70,6 +70,10 @@ export async function renderClientView(param1, param2) {
   const comercio = Array.isArray(data) ? data[0] : data;
   console.log('[ClientView] Comercio encontrado:', comercio);
 
+  // Normalizar datos de promoción (asegurando tipo booleano y texto limpio)
+  comercio.promo_activa = Boolean(comercio?.promo_activa === true || comercio?.promo_activa === 'true' || comercio?.promo_activa === 1);
+  comercio.promo_texto = (comercio?.promo_texto || '').trim();
+
   // Extraer ID soportando id, id_comercio, comercio_id, _id o fallback al slug
   const comercioId = comercio?.id ?? comercio?.id_comercio ?? comercio?.comercio_id ?? comercio?._id ?? comercio?.slug;
 
@@ -81,7 +85,9 @@ export async function renderClientView(param1, param2) {
 
   store = {
     ...comercio,
-    id: comercioId
+    id: comercioId,
+    promo_activa: comercio.promo_activa,
+    promo_texto: comercio.promo_texto
   };
 
   // Sincronizar Dual Tema Visual (dark o light) con fallback seguro
@@ -91,6 +97,35 @@ export async function renderClientView(param1, param2) {
 
   // 2. Cargar platos con las columnas reales de la BD (.eq('slug_comercio', slug).order('cat', { ascending: true }))
   const storeSlugClean = store.slug || slugParam;
+
+  // Sincronización en tiempo real para cambios de promociones/ofertas en el comercio
+  try {
+    supabase
+      .channel(`comercio-promo-sync-${storeSlugClean}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'comercios',
+          filter: `slug=eq.${storeSlugClean}`
+        },
+        (payload) => {
+          if (payload.new) {
+            console.log('[ClientView] Actualización en vivo del comercio:', payload.new);
+            comercio.promo_activa = Boolean(payload.new.promo_activa === true || payload.new.promo_activa === 'true' || payload.new.promo_activa === 1);
+            comercio.promo_texto = (payload.new.promo_texto || '').trim();
+            store.promo_activa = comercio.promo_activa;
+            store.promo_texto = comercio.promo_texto;
+            renderUI();
+          }
+        }
+      )
+      .subscribe();
+  } catch (syncErr) {
+    console.warn('[ClientView] No se pudo activar sync realtime para el comercio:', syncErr);
+  }
+
   let prodsData = null;
   let prodsError = null;
 
@@ -452,40 +487,6 @@ export async function renderClientView(param1, param2) {
             ` : ''}
           </div>
 
-          <!-- Banner de Promociones / Ofertas del Día -->
-          ${store.promo_activa && store.promo_texto ? `
-            <div class="animate-fade-in" style="
-              margin-top: 1.25rem;
-              background: var(--accent-light);
-              border: 1px solid var(--accent);
-              border-radius: var(--radius-lg);
-              padding: 0.85rem 1.2rem;
-              display: flex;
-              align-items: center;
-              gap: 0.75rem;
-              box-shadow: var(--shadow-sm);
-            ">
-              <div style="
-                background: var(--accent);
-                color: var(--accent-contrast, #ffffff);
-                width: 32px;
-                height: 32px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                flex-shrink: 0;
-                font-weight: 800;
-              ">
-                <i data-lucide="flame" class="lucide-sm"></i>
-              </div>
-              <div style="flex: 1;">
-                <span style="font-size: 0.7rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em; color: var(--accent); display: block; margin-bottom: 0.1rem;">Oferta Especial</span>
-                <p style="font-size: 0.875rem; font-weight: 600; color: var(--text-primary); line-height: 1.35;">${store.promo_texto}</p>
-              </div>
-            </div>
-          ` : ''}
-
         </div>
       </header>
     `;
@@ -659,6 +660,10 @@ export async function renderClientView(param1, param2) {
       <div style="min-height: 100vh; padding-bottom: ${cart.length > 0 ? '6.5rem' : '2rem'}; background-color: var(--bg-primary);">
         
         ${headerHtml}
+
+        <!-- Punto de Montaje del Banner de Promoción / Ofertas del Día -->
+        <div id="promo-banner-container" style="max-width: 900px; margin: 0 auto; display: none;"></div>
+
         ${mainContentHtml}
 
         <!-- Barra Flotante de Carrito / Checkout -->
@@ -848,6 +853,43 @@ export async function renderClientView(param1, param2) {
 
       </div>
     `;
+
+    // Función auxiliar para crear y montar el contenedor del banner en el DOM si no estuviese presente
+    const crearContenedorBanner = () => {
+      let el = document.getElementById('promo-banner-container');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'promo-banner-container';
+        el.style.maxWidth = '900px';
+        el.style.margin = '0 auto';
+        const headerEl = container.querySelector('header');
+        if (headerEl && headerEl.nextSibling) {
+          headerEl.parentNode.insertBefore(el, headerEl.nextSibling);
+        } else if (headerEl) {
+          headerEl.parentNode.appendChild(el);
+        } else {
+          container.prepend(el);
+        }
+      }
+      return el;
+    };
+
+    // Renderizado Condicional del Banner en la Interfaz del Cliente
+    const bannerContainer = document.getElementById('promo-banner-container') || crearContenedorBanner();
+    if (comercio.promo_activa && comercio.promo_texto) {
+      bannerContainer.style.display = 'block';
+      bannerContainer.innerHTML = `
+        <div style="background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); color: #fff; padding: 12px 20px; border-radius: 14px; margin: 12px 16px; box-shadow: 0 10px 20px -5px rgba(234, 88, 12, 0.4); display: flex; align-items: center; gap: 12px; animation: pulseGlow 2s infinite;">
+          <span style="font-size: 22px;">🔥</span>
+          <div style="flex: 1;">
+            <strong style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; display: block; opacity: 0.9;">¡Oferta del Día!</strong>
+            <p style="font-size: 14px; font-weight: 700; margin: 2px 0 0 0;">${comercio.promo_texto}</p>
+          </div>
+        </div>
+      `;
+    } else {
+      bannerContainer.style.display = 'none';
+    }
 
     // 4. Asignación de Event Listeners
     const searchInput = document.getElementById('input-search');

@@ -286,362 +286,277 @@ export function renderSuperAdmin(targetContainer) {
     }
   };
 
+  // Estado de filtros y visualización
+  let searchTerm = '';
+  let statusFilter = 'all'; // 'all' | 'active' | 'paused'
+  let pinVisibilityState = {}; // { [slug]: boolean }
+
+  const getInitials = (name) => {
+    if (!name) return '??';
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
+  const getAvatarColor = (name) => {
+    const palette = [
+      { bg: 'rgba(79, 70, 229, 0.12)', text: '#4F46E5', border: 'rgba(79, 70, 229, 0.25)' }, // Indigo
+      { bg: 'rgba(16, 185, 129, 0.12)', text: '#059669', border: 'rgba(16, 185, 129, 0.25)' }, // Emerald
+      { bg: 'rgba(59, 130, 246, 0.12)', text: '#2563EB', border: 'rgba(59, 130, 246, 0.25)' }, // Blue
+      { bg: 'rgba(147, 51, 234, 0.12)', text: '#9333EA', border: 'rgba(147, 51, 234, 0.25)' }, // Purple
+      { bg: 'rgba(234, 88, 12, 0.12)', text: '#EA580C', border: 'rgba(234, 88, 12, 0.25)' },  // Orange
+      { bg: 'rgba(219, 39, 119, 0.12)', text: '#DB2777', border: 'rgba(219, 39, 119, 0.25)' }, // Pink
+      { bg: 'rgba(13, 148, 136, 0.12)', text: '#0D9488', border: 'rgba(13, 148, 136, 0.25)' }  // Teal
+    ];
+    let hash = 0;
+    for (let i = 0; i < (name || '').length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const idx = Math.abs(hash) % palette.length;
+    return palette[idx];
+  };
+
+  const getFilteredStores = () => {
+    return stores.filter(store => {
+      const q = searchTerm.trim().toLowerCase();
+      const matchesSearch = !q ||
+        (store.nombre && store.nombre.toLowerCase().includes(q)) ||
+        (store.slug && store.slug.toLowerCase().includes(q));
+
+      const isActive = store.activo !== false;
+      let matchesStatus = true;
+      if (statusFilter === 'active') matchesStatus = isActive;
+      else if (statusFilter === 'paused') matchesStatus = !isActive;
+
+      return matchesSearch && matchesStatus;
+    });
+  };
+
   const renderUI = () => {
+    const allActive = stats.totalStores > 0 && stats.activeStores === stats.totalStores;
+    const chipText = allActive ? '100% operativos' : `${stats.activeStores} operativos`;
+    const chipBg = allActive ? 'var(--sa-success-light)' : 'var(--sa-warning-light)';
+    const chipColor = allActive ? 'var(--sa-success-text)' : 'var(--sa-warning-text)';
+
     container.innerHTML = `
-      <div class="superadmin-wrapper w-full min-h-screen" style="min-height: 100vh; width: 100%; background-color: var(--bg-primary);">
+      <div class="superadmin-wrapper w-full min-h-screen">
         <div class="superadmin-container max-w-7xl mx-auto px-6 py-8" style="max-width: 80rem; width: 100%; margin: 0 auto; padding: 2rem 1.5rem;">
         
-        <!-- Cabecera Superior Desktop -->
-        <header class="w-full flex flex-col md:flex-row justify-between items-center mb-8 pb-6 border-b border-default gap-4" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid var(--border-default); padding-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; width: 100%;">
-          <div style="display: flex; align-items: center; gap: 1rem;">
-            <div style="background-color: var(--accent-light); padding: 0.75rem; border-radius: var(--radius-lg); color: var(--accent); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm);">
-              <i data-lucide="shield-check" class="lucide-xl" style="width: 2rem; height: 2rem;"></i>
+        <!-- Header Principal Super-Admin -->
+        <header class="w-full flex flex-col md:flex-row justify-between items-start md:items-center mb-8 pb-6 border-b gap-4" style="border-bottom: 1px solid var(--sa-border); padding-bottom: 1.5rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+              <h1 style="font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; color: var(--sa-text-primary); margin: 0; line-height: 1.2;">
+                Panel Super-Administrador
+              </h1>
+              <span class="badge" style="background: var(--sa-primary-light); color: var(--sa-primary); font-size: 11px; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: var(--sa-radius-badge); letter-spacing: 0.05em; text-transform: uppercase;">
+                SUPER-ADMIN
+              </span>
             </div>
-            <div>
-              <div style="display: flex; align-items: center; gap: 0.65rem;">
-                <h1 style="font-size: 1.75rem; font-weight: 800; letter-spacing: -0.025em; color: var(--text-primary); margin: 0; line-height: 1.2;">
-                  Panel Super-Administrador
-                </h1>
-                <span class="badge badge-active" style="font-size: 0.75rem; padding: 0.2rem 0.55rem; font-weight: 700;">
-                  Super-Admin
-                </span>
-              </div>
-              <p style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.25rem;">
-                Control y supervisión multi-comercio centralizada
-              </p>
-            </div>
+            <p style="color: var(--sa-text-muted); font-size: 0.875rem; margin-top: 0.25rem; font-weight: 400;">
+              Control y supervisión multi-comercio centralizada
+            </p>
           </div>
           
-          <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; justify-content: flex-end; margin-left: auto;">
-            <!-- Selector de Tema Super-Admin -->
-            <div style="display: flex; align-items: center; gap: 0.5rem; background: var(--bg-card); padding: 0.4rem 0.75rem; border: 1px solid var(--border-default); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);">
-              <i data-lucide="palette" class="lucide-sm" style="color: var(--accent);"></i>
-              <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary);">Tema:</span>
-              <select id="superadmin-theme-switcher" class="input-field" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; height: auto; width: auto; font-weight: 700; cursor: pointer; border-radius: var(--radius-md); border: 1px solid var(--border-default); background: var(--bg-primary); color: var(--text-primary);">
+          <div style="display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap;">
+            <!-- Selector de Tema Super-Admin (Compacto) -->
+            <div style="display: inline-flex; align-items: center; gap: 0.4rem; background: var(--sa-bg-card); padding: 0.3rem 0.65rem; border: 1px solid var(--sa-border); border-radius: var(--sa-radius-button); box-shadow: var(--sa-shadow-card);">
+              <i data-lucide="palette" style="width: 14px; height: 14px; color: var(--sa-primary);"></i>
+              <select id="superadmin-theme-switcher" class="sa-select" style="border: none; padding: 0.15rem 0.35rem; font-size: 0.8rem; font-weight: 600; background: transparent; cursor: pointer; color: var(--sa-text-primary);" aria-label="Cambiar tema visual del panel">
                 <option value="light" ${currentAdminTheme === 'light' ? 'selected' : ''}>☀️ Clean Light</option>
                 <option value="dark" ${currentAdminTheme === 'dark' ? 'selected' : ''}>🌙 Gourmet Dark</option>
               </select>
             </div>
 
-            <a href="/" class="btn btn-secondary" style="padding: 0.55rem 1rem; font-size: 0.875rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; border-radius: var(--radius-lg);">
-              <i data-lucide="external-link" class="lucide-sm"></i>
+            <!-- Botón Secundario Outline: Ver App Pública -->
+            <a href="/" class="sa-btn-outline" title="Abrir la aplicación pública" aria-label="Abrir aplicación pública">
+              <i data-lucide="external-link" style="width: 15px; height: 15px;"></i>
               <span>Ver App Pública</span>
             </a>
 
-            <button id="btn-new-store" class="btn btn-primary" style="padding: 0.55rem 1.25rem; font-size: 0.875rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem; border-radius: var(--radius-lg); box-shadow: var(--shadow-glow);">
-              <i data-lucide="plus-circle" class="lucide-sm"></i>
+            <!-- Botón Primario Índigo: Nuevo Comercio -->
+            <button id="btn-new-store" class="sa-btn-primary" aria-label="Registrar nuevo comercio">
+              <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
               <span>Nuevo Comercio</span>
             </button>
           </div>
         </header>
 
-        <!-- Métricas Clave (Desktop 3-Columns Grid) -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 superadmin-kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem; width: 100%;">
+        <!-- Tarjetas de Métricas (3) Tintadas & Hover Leve -->
+        <div class="superadmin-kpi-grid">
           
-          <div class="card" style="display: flex; align-items: center; gap: 1.25rem; background: var(--bg-card); border: 1px solid var(--border-default); border-radius: var(--radius-xl); padding: 1.5rem; box-shadow: var(--shadow-md); transition: transform 0.2s ease, box-shadow 0.2s ease;">
-            <div style="background-color: rgba(59, 130, 246, 0.12); color: #2563eb; width: 56px; height: 56px; border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <i data-lucide="store" class="lucide-lg" style="width: 28px; height: 28px;"></i>
+          <!-- KPI 1: Comercios Registrados -->
+          <div class="sa-card sa-card-hoverable" style="padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(79, 70, 229, 0.1); color: #4F46E5; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <i data-lucide="store" style="width: 20px; height: 20px;"></i>
             </div>
             <div style="flex: 1; min-width: 0;">
-              <p style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 700;">Comercios Registrados</p>
-              <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.35rem;">
-                <h3 style="font-size: 2rem; font-weight: 900; color: var(--text-primary); line-height: 1;">${stats.totalStores}</h3>
-                <span style="font-size: 0.875rem; font-weight: 600; color: var(--success);">${stats.activeStores} operativos</span>
+              <p style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--sa-text-muted); margin: 0;">
+                Comercios Registrados
+              </p>
+              <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.2rem;">
+                <h3 style="font-size: 32px; font-weight: 700; color: var(--sa-text-primary); line-height: 1; margin: 0;">
+                  ${stats.totalStores}
+                </h3>
+                <span class="badge" style="background: ${chipBg}; color: ${chipColor}; font-size: 11px; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: var(--sa-radius-badge); border: 1px solid ${allActive ? 'var(--sa-success-border)' : 'var(--sa-warning-border)'};">
+                  ${chipText}
+                </span>
               </div>
             </div>
           </div>
 
-          <div class="card" style="display: flex; align-items: center; gap: 1.25rem; background: var(--bg-card); border: 1px solid var(--border-default); border-radius: var(--radius-xl); padding: 1.5rem; box-shadow: var(--shadow-md); transition: transform 0.2s ease, box-shadow 0.2s ease;">
-            <div style="background-color: rgba(5, 150, 105, 0.12); color: #059669; width: 56px; height: 56px; border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <i data-lucide="credit-card" class="lucide-lg" style="width: 28px; height: 28px;"></i>
+          <!-- KPI 2: Abono Mensual Proyectado -->
+          <div class="sa-card sa-card-hoverable" style="padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); color: #10B981; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <i data-lucide="credit-card" style="width: 20px; height: 20px;"></i>
             </div>
             <div style="flex: 1; min-width: 0;">
-              <p style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 700;">Abono Mensual Proyectado</p>
-              <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.35rem;">
-                <h3 style="font-size: 2rem; font-weight: 900; color: var(--text-primary); line-height: 1;">$${(stats.totalStores * 35000).toLocaleString('es-AR')}</h3>
-                <span style="font-size: 0.875rem; font-weight: 600; color: var(--text-secondary);">/ mes est.</span>
+              <p style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--sa-text-muted); margin: 0;">
+                Abono Mensual Proyectado
+              </p>
+              <div style="display: flex; align-items: baseline; gap: 0.4rem; margin-top: 0.2rem;">
+                <h3 style="font-size: 32px; font-weight: 700; color: var(--sa-text-primary); line-height: 1; margin: 0;">
+                  $${(stats.totalStores * 35000).toLocaleString('es-AR')}
+                </h3>
+                <span style="font-size: 12px; font-weight: 500; color: var(--sa-text-muted);">
+                  / mes est.
+                </span>
               </div>
             </div>
           </div>
 
-          <div class="card" style="display: flex; align-items: center; gap: 1.25rem; background: var(--bg-card); border: 1px solid var(--border-default); border-radius: var(--radius-xl); padding: 1.5rem; box-shadow: var(--shadow-md); transition: transform 0.2s ease, box-shadow 0.2s ease;">
-            <div style="background-color: rgba(239, 68, 68, 0.12); color: #ef4444; width: 56px; height: 56px; border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <i data-lucide="shopping-bag" class="lucide-lg" style="width: 28px; height: 28px;"></i>
+          <!-- KPI 3: Pedidos Globales -->
+          <div class="sa-card sa-card-hoverable" style="padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(147, 51, 234, 0.1); color: #9333EA; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <i data-lucide="shopping-bag" style="width: 20px; height: 20px;"></i>
             </div>
             <div style="flex: 1; min-width: 0;">
-              <p style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 700;">Pedidos Globales</p>
-              <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.35rem;">
-                <h3 style="font-size: 2rem; font-weight: 900; color: var(--text-primary); line-height: 1;">${stats.totalOrders}</h3>
-                <span style="font-size: 0.875rem; font-weight: 600; color: var(--text-secondary);">en toda la red</span>
+              <p style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--sa-text-muted); margin: 0;">
+                Pedidos Globales
+              </p>
+              <div style="display: flex; align-items: baseline; gap: 0.4rem; margin-top: 0.2rem;">
+                <h3 style="font-size: 32px; font-weight: 700; color: var(--sa-text-primary); line-height: 1; margin: 0;">
+                  ${stats.totalOrders}
+                </h3>
+                <span style="font-size: 12px; font-weight: 500; color: var(--sa-text-muted);">
+                  en toda la red
+                </span>
               </div>
             </div>
           </div>
 
         </div>
 
-        <!-- Tabla / Listado de Comercios (Desktop Expanded Layout - Sin Scroll Horizontal) -->
-        <div class="card w-full" style="width: 100%; padding: 0; overflow: hidden; background: var(--bg-card); border: 1px solid var(--border-default); border-radius: var(--radius-xl); box-shadow: var(--shadow-md); margin-bottom: 2rem;">
-          <div style="padding: 1.15rem 1.5rem; border-bottom: 1px solid var(--border-default); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
-            <div style="display: flex; align-items: center; gap: 0.6rem;">
-              <i data-lucide="building-2" style="color: var(--accent); width: 1.25rem; height: 1.25rem;"></i>
-              <h2 style="font-size: 1.2rem; font-weight: 800; color: var(--text-primary); margin: 0;">Red de Locales Gastronómicos</h2>
+        <!-- Tabla / Listado de Comercios Gastronómicos -->
+        <div class="sa-card" style="padding: 0; overflow: visible; margin-bottom: 2.5rem;">
+          
+          <!-- Barra de Herramientas Superior (Título + Buscador + Filtro Estado) -->
+          <div style="padding: 1.15rem 1.5rem; border-bottom: 1px solid var(--sa-border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+              <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--sa-primary-light); color: var(--sa-primary); display: flex; align-items: center; justify-content: center;">
+                <i data-lucide="building-2" style="width: 18px; height: 18px;"></i>
+              </div>
+              <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--sa-text-primary); margin: 0; letter-spacing: -0.01em;">
+                Red de Locales Gastronómicos
+              </h2>
+              <span id="sa-total-stores-badge" class="badge" style="background: var(--sa-bg-subtle); color: var(--sa-text-secondary); font-size: 11px; font-weight: 600; padding: 0.2rem 0.55rem; border-radius: var(--sa-radius-badge); border: 1px solid var(--sa-border);">
+                ${stores.length} locales
+              </span>
             </div>
-            <span class="badge" style="background: var(--bg-subtle); color: var(--text-secondary); font-size: 0.775rem; font-weight: 700; padding: 0.3rem 0.7rem; border-radius: var(--radius-full); border: 1px solid var(--border-default);">
-              ${stores.length} comercios registrados
-            </span>
+
+            <!-- Buscador y Filtro por Estado -->
+            <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+              <!-- Buscador -->
+              <div style="position: relative; width: 230px;">
+                <i data-lucide="search" style="position: absolute; left: 0.65rem; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--sa-text-muted); pointer-events: none;"></i>
+                <input type="text" id="sa-search-input" placeholder="Buscar por nombre o slug..." class="sa-input" style="padding-left: 2.1rem; width: 100%; height: 36px; font-size: 0.8rem;" value="${searchTerm}" aria-label="Buscar comercio por nombre o slug">
+              </div>
+
+              <!-- Filtro Estado -->
+              <select id="sa-filter-status" class="sa-select" style="height: 36px; font-size: 0.8rem; font-weight: 600;" aria-label="Filtrar por estado operativo">
+                <option value="all" ${statusFilter === 'all' ? 'selected' : ''}>Todos los estados</option>
+                <option value="active" ${statusFilter === 'active' ? 'selected' : ''}>🟢 Solo operativos</option>
+                <option value="paused" ${statusFilter === 'paused' ? 'selected' : ''}>🟡 Solo pausados</option>
+              </select>
+            </div>
           </div>
 
-          <div class="superadmin-table-container w-full" style="width: 100%; overflow: hidden;">
-            <table class="superadmin-table w-full table-fixed" style="width: 100%; table-layout: fixed; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+          <!-- Contenedor con Tabla de Cabecera Sticky -->
+          <div class="superadmin-table-container">
+            <table class="sa-table" id="sa-stores-table">
               <thead>
-                <tr style="background-color: var(--bg-subtle); border-bottom: 1px solid var(--border-default); color: var(--text-secondary); font-size: 0.725rem; text-transform: uppercase; letter-spacing: 0.05em;">
-                  <th style="padding: 0.75rem 0.75rem; font-weight: 700; width: 22%;">Comercio</th>
-                  <th style="padding: 0.75rem 0.6rem; font-weight: 700; width: 13%;">Slug</th>
-                  <th style="padding: 0.75rem 0.6rem; font-weight: 700; width: 14%;">WhatsApp</th>
-                  <th style="padding: 0.75rem 0.4rem; font-weight: 700; width: 7%; text-align: center;">PIN</th>
-                  <th style="padding: 0.75rem 0.6rem; font-weight: 700; width: 11%;">Estilo</th>
-                  <th style="padding: 0.75rem 0.6rem; font-weight: 700; width: 9%;">Estado</th>
-                  <th style="padding: 0.75rem 0.75rem; font-weight: 700; width: 24%; text-align: right;">Acciones</th>
+                <tr>
+                  <th style="width: 24%;">Comercio</th>
+                  <th style="width: 15%;">Slug</th>
+                  <th style="width: 16%;">WhatsApp</th>
+                  <th style="width: 10%; text-align: center;">PIN</th>
+                  <th style="width: 13%;">Estilo</th>
+                  <th style="width: 12%;">Estado</th>
+                  <th style="width: 10%; text-align: right;">Acciones</th>
                 </tr>
               </thead>
-              <tbody>
-                ${stores.length === 0 ? `
-                  <tr>
-                    <td colspan="7" style="padding: 3rem 1.5rem; text-align: center; color: var(--text-muted);">
-                      <i data-lucide="utensils" class="lucide-xl" style="margin-bottom: 0.75rem; opacity: 0.4;"></i>
-                      <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">No hay comercios registrados</h4>
-                      <p style="font-size: 0.85rem;">Haz clic en el botón superior "+ Nuevo Comercio" para dar de alta el primer local.</p>
-                    </td>
-                  </tr>
-                ` : stores.map(store => `
-                  <tr style="border-bottom: 1px solid var(--border-default); transition: background-color 0.15s ease;" onmouseover="this.style.backgroundColor='var(--bg-card-hover)'" onmouseout="this.style.backgroundColor='transparent'">
-                    
-                    <!-- Nombre y Datos del Local -->
-                    <td style="padding: 0.65rem 0.75rem; font-weight: 700; color: var(--text-primary); overflow: hidden;">
-                      <div style="display: flex; align-items: center; gap: 0.5rem; min-width: 0;">
-                        <div style="width: 30px; height: 30px; border-radius: var(--radius-md); background: var(--accent-light); color: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                          <i data-lucide="store" class="lucide-sm" style="width: 15px; height: 15px;"></i>
-                        </div>
-                        <div style="min-width: 0; flex: 1; overflow: hidden;">
-                          <span title="${store.nombre}" style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${store.nombre}</span>
-                          ${store.descripcion ? `<span title="${store.descripcion}" style="font-size: 0.7rem; color: var(--text-muted); font-weight: 400; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${store.descripcion}</span>` : ''}
-                        </div>
-                      </div>
-                    </td>
-
-                    <!-- Slug URL -->
-                    <td style="padding: 0.65rem 0.6rem; overflow: hidden;" title="/${store.slug}">
-                      <span style="font-family: monospace; font-size: 0.75rem; background: var(--bg-subtle); padding: 0.15rem 0.4rem; border-radius: var(--radius-sm); border: 1px solid var(--border-default); color: var(--text-secondary); font-weight: 600; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;">
-                        /${store.slug}
-                      </span>
-                    </td>
-
-                    <!-- WhatsApp -->
-                    <td style="padding: 0.65rem 0.6rem; color: var(--text-secondary); overflow: hidden;" title="${store.whatsapp || 'Sin asignar'}">
-                      <div style="display: flex; align-items: center; gap: 0.35rem; min-width: 0;">
-                        <i data-lucide="phone" class="lucide-sm" style="color: var(--success); width: 13px; height: 13px; flex-shrink: 0;"></i>
-                        <span style="font-size: 0.78rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${store.whatsapp || 'Sin asignar'}</span>
-                      </div>
-                    </td>
-
-                    <!-- PIN Acceso -->
-                    <td style="padding: 0.65rem 0.4rem; text-align: center; white-space: nowrap;">
-                      <span style="font-family: monospace; font-size: 0.78rem; background: var(--bg-subtle); padding: 0.15rem 0.35rem; border-radius: var(--radius-sm); border: 1px solid var(--border-default); color: var(--text-primary); font-weight: 800; letter-spacing: 0.05em; display: inline-block;">
-                        ${store.pin || store.pin_admin || store.pin_owner || '****'}
-                      </span>
-                    </td>
-
-                    <!-- Selector de Estilo Visual -->
-                    <td style="padding: 0.65rem 0.6rem; white-space: nowrap;">
-                      <select class="select-store-theme" data-slug="${store.slug}" style="
-                        width: 100%;
-                        max-width: 95px;
-                        padding: 0.2rem 0.4rem;
-                        font-size: 0.725rem;
-                        font-weight: 700;
-                        border-radius: var(--radius-full);
-                        border: 1px solid var(--border-default);
-                        background: var(--bg-card);
-                        color: var(--text-primary);
-                        cursor: pointer;
-                        outline: none;
-                        transition: all 0.2s ease;
-                      ">
-                        <option value="dark" ${store.tema !== 'light' ? 'selected' : ''}>🌙 Dark</option>
-                        <option value="light" ${store.tema === 'light' ? 'selected' : ''}>☀️ Light</option>
-                      </select>
-                    </td>
-
-                    <!-- Estado del Comercio -->
-                    <td style="padding: 0.65rem 0.6rem; white-space: nowrap;">
-                      <span class="badge ${store.activo !== false ? 'badge-active' : 'badge-inactive'}" style="padding: 0.2rem 0.45rem; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.25rem;">
-                        <i data-lucide="${store.activo !== false ? 'check-circle' : 'slash'}" class="lucide-sm" style="width: 11px; height: 11px;"></i>
-                        ${store.activo !== false ? 'Operativo' : 'Pausado'}
-                      </span>
-                    </td>
-
-                    <!-- Botones de Acción Desktop Compactos (Iconos con Tooltips, gap-1) -->
-                    <td style="padding: 0.65rem 0.75rem; text-align: right; white-space: nowrap;">
-                      <div class="superadmin-actions-cell" style="display: inline-flex; gap: 0.25rem; align-items: center; justify-content: flex-end; flex-wrap: nowrap;">
-                        
-                        <!-- WhatsApp Accesos -->
-                        <button class="btn btn-whatsapp-share" data-slug="${store.slug}" style="
-                          width: 28px;
-                          height: 28px;
-                          padding: 0;
-                          background-color: var(--success-light); 
-                          color: var(--success); 
-                          border: 1px solid var(--success);
-                          border-radius: var(--radius-md);
-                          display: inline-flex;
-                          align-items: center;
-                          justify-content: center;
-                          flex-shrink: 0;
-                        " title="Enviar accesos por WhatsApp">
-                          <i data-lucide="message-circle" class="lucide-sm" style="width: 14px; height: 14px;"></i>
-                        </button>
-
-                        <!-- Copiar Accesos -->
-                        <button class="btn btn-secondary btn-copy-links" data-slug="${store.slug}" style="
-                          width: 28px;
-                          height: 28px;
-                          padding: 0;
-                          border-radius: var(--radius-md);
-                          display: inline-flex;
-                          align-items: center;
-                          justify-content: center;
-                          flex-shrink: 0;
-                        " title="Copiar Enlaces de Acceso">
-                          <i data-lucide="copy" class="lucide-sm" style="width: 13px; height: 13px;"></i>
-                        </button>
-
-                        <!-- Suspender / Activar -->
-                        <button class="btn btn-secondary btn-toggle-status" data-id="${store.id}" data-active="${store.activo !== false}" style="
-                          width: 28px;
-                          height: 28px;
-                          padding: 0;
-                          border-radius: var(--radius-md);
-                          display: inline-flex;
-                          align-items: center;
-                          justify-content: center;
-                          flex-shrink: 0;
-                        " title="${store.activo !== false ? 'Pausar comercio' : 'Reactivar comercio'}">
-                          <i data-lucide="${store.activo !== false ? 'pause' : 'play'}" class="lucide-sm" style="width: 13px; height: 13px;"></i>
-                        </button>
-
-                        <!-- Editar Comercio -->
-                        <button class="btn btn-secondary btn-edit-store" data-slug="${store.slug}" style="
-                          width: 28px;
-                          height: 28px;
-                          padding: 0;
-                          border-radius: var(--radius-md);
-                          display: inline-flex;
-                          align-items: center;
-                          justify-content: center;
-                          flex-shrink: 0;
-                        " title="Editar Comercio">
-                          <i data-lucide="pencil" class="lucide-sm" style="width: 13px; height: 13px;"></i>
-                        </button>
-
-                        <!-- Panel Dueño -->
-                        <a href="?owner=${store.slug}" class="btn btn-secondary" style="
-                          width: 28px;
-                          height: 28px;
-                          padding: 0;
-                          border-radius: var(--radius-md);
-                          display: inline-flex;
-                          align-items: center;
-                          justify-content: center;
-                          flex-shrink: 0;
-                        " title="Panel de control del comercio">
-                          <i data-lucide="lock" class="lucide-sm" style="width: 13px; height: 13px;"></i>
-                        </a>
-
-                        <!-- Ver Carta Pública -->
-                        <a href="?local=${store.slug}" target="_blank" class="btn btn-primary" style="
-                          width: 28px;
-                          height: 28px;
-                          padding: 0;
-                          border-radius: var(--radius-md);
-                          display: inline-flex;
-                          align-items: center;
-                          justify-content: center;
-                          flex-shrink: 0;
-                        " title="Ver Menú Público">
-                          <i data-lucide="eye" class="lucide-sm" style="width: 13px; height: 13px;"></i>
-                        </a>
-
-                        <!-- Eliminar Comercio -->
-                        <button class="btn btn-danger btn-delete-store" data-slug="${store.slug}" style="
-                          width: 28px;
-                          height: 28px;
-                          padding: 0;
-                          border-radius: var(--radius-md);
-                          display: inline-flex;
-                          align-items: center;
-                          justify-content: center;
-                          flex-shrink: 0;
-                        " title="Eliminar Comercio">
-                          <i data-lucide="trash-2" class="lucide-sm" style="width: 13px; height: 13px;"></i>
-                        </button>
-
-                      </div>
-                    </td>
-                  </tr>
-                `).join('')}
+              <tbody id="sa-table-body">
+                <!-- Se inyecta dinámicamente con renderTableRows() -->
               </tbody>
             </table>
           </div>
+
+          <!-- Pie de Tabla con Paginación / Conteo -->
+          <div style="padding: 0.85rem 1.5rem; border-top: 1px solid var(--sa-border); display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--sa-text-muted); background: var(--sa-bg-card); border-bottom-left-radius: var(--sa-radius-card); border-bottom-right-radius: var(--sa-radius-card);">
+            <span id="sa-table-footer-count">Mostrando 0 de 0 comercios</span>
+            <span style="font-weight: 500;">Plataforma GastroPWA Multi-Comercio</span>
+          </div>
+
         </div>
 
         <!-- Modal para Nuevo Comercio -->
         <div id="new-store-modal" class="modal-overlay" style="display: none;">
-          <div class="modal-content">
-            <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-default); display: flex; justify-content: space-between; align-items: center;">
+          <div class="modal-content sa-card" style="max-width: 520px; padding: 0;">
+            <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--sa-border); display: flex; justify-content: space-between; align-items: center;">
               <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <i data-lucide="plus-circle" style="color: var(--accent);"></i>
-                <h3 style="font-weight: 700;">Registrar Nuevo Comercio</h3>
+                <i data-lucide="plus-circle" style="color: var(--sa-primary);"></i>
+                <h3 style="font-weight: 700; margin: 0; font-size: 1.1rem; color: var(--sa-text-primary);">Registrar Nuevo Comercio</h3>
               </div>
-              <button id="btn-close-modal" class="btn-icon" style="border: none; background: transparent;">
-                <i data-lucide="x"></i>
+              <button id="btn-close-modal" class="sa-icon-btn" style="border: none;" aria-label="Cerrar modal">
+                <i data-lucide="x" style="width: 16px; height: 16px;"></i>
               </button>
             </div>
 
-            <form id="form-create-store" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.2rem;">
+            <form id="form-create-store" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.15rem;">
               <div>
-                <label style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.4rem; color: var(--text-secondary);">Nombre del Establecimiento *</label>
-                <input class="input-field" type="text" name="nombre" placeholder="Ej: Burger House Premium" required>
+                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--sa-text-secondary);">Nombre del Establecimiento *</label>
+                <input class="sa-input" type="text" name="nombre" placeholder="Ej: Burger House Premium" required style="width: 100%;">
               </div>
 
               <div>
-                <label style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.4rem; color: var(--text-secondary);">Slug URL único * (identificador web)</label>
-                <input class="input-field" type="text" name="slug" placeholder="burger-house" required>
+                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--sa-text-secondary);">Slug URL único * (identificador web)</label>
+                <input class="sa-input" type="text" name="slug" placeholder="burger-house" required style="width: 100%;">
               </div>
 
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                 <div>
-                  <label style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.4rem; color: var(--text-secondary);">WhatsApp Pedidos</label>
-                  <input class="input-field" type="text" name="whatsapp" placeholder="54911xxxxxxxx">
+                  <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--sa-text-secondary);">WhatsApp Pedidos</label>
+                  <input class="sa-input" type="text" name="whatsapp" placeholder="54911xxxxxxxx" style="width: 100%;">
                 </div>
 
                 <div>
-                  <label style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.4rem; color: var(--text-secondary);">PIN de Seguridad Dueño *</label>
-                  <input class="input-field" type="password" name="pin" maxlength="6" placeholder="4 o 6 dígitos" required>
+                  <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--sa-text-secondary);">PIN de Seguridad Dueño *</label>
+                  <input class="sa-input" type="password" name="pin" maxlength="6" placeholder="4 o 6 dígitos" required style="width: 100%;">
                 </div>
               </div>
 
               <div>
-                <label style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.4rem; color: var(--text-secondary);">Estilo Visual del Comercio *</label>
-                <select class="input-field" name="tema" required>
-                  <option value="dark">🌙 Gourmet Dark (Oscuro & Dorado)</option>
+                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--sa-text-secondary);">Estilo Visual del Comercio *</label>
+                <select class="sa-select" name="tema" required style="width: 100%;">
                   <option value="light">☀️ Clean Light (Delivery Claro & Coral)</option>
+                  <option value="dark">🌙 Gourmet Dark (Oscuro & Dorado)</option>
                 </select>
               </div>
 
-              <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; border-top: 1px solid var(--border-default); padding-top: 1.25rem;">
-                <button type="button" id="btn-cancel-modal" class="btn btn-secondary">Cancelar</button>
-                <button type="submit" class="btn btn-primary">
-                  <i data-lucide="check"></i>
+              <div style="display: flex; justify-content: flex-end; gap: 0.65rem; margin-top: 0.5rem; border-top: 1px solid var(--sa-border); padding-top: 1.25rem;">
+                <button type="button" id="btn-cancel-modal" class="sa-btn-outline">Cancelar</button>
+                <button type="submit" class="sa-btn-primary">
+                  <i data-lucide="check" style="width: 15px; height: 15px;"></i>
                   Crear Comercio
                 </button>
               </div>
@@ -651,57 +566,57 @@ export function renderSuperAdmin(targetContainer) {
 
         <!-- Modal para Editar Comercio -->
         <div id="edit-store-modal" class="modal-overlay" style="display: none;">
-          <div class="modal-content">
-            <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-default); display: flex; justify-content: space-between; align-items: center;">
+          <div class="modal-content sa-card" style="max-width: 520px; padding: 0;">
+            <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--sa-border); display: flex; justify-content: space-between; align-items: center;">
               <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <i data-lucide="pencil" style="color: var(--accent);"></i>
-                <h3 style="font-weight: 700;">Editar Comercio</h3>
+                <i data-lucide="pencil" style="color: var(--sa-primary);"></i>
+                <h3 style="font-weight: 700; margin: 0; font-size: 1.1rem; color: var(--sa-text-primary);">Editar Comercio</h3>
               </div>
-              <button id="btn-close-edit-modal" class="btn-icon" style="border: none; background: transparent;">
-                <i data-lucide="x"></i>
+              <button id="btn-close-edit-modal" class="sa-icon-btn" style="border: none;" aria-label="Cerrar modal">
+                <i data-lucide="x" style="width: 16px; height: 16px;"></i>
               </button>
             </div>
 
-            <form id="form-edit-store" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.2rem;">
+            <form id="form-edit-store" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.15rem;">
               <div>
-                <label style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.4rem; color: var(--text-secondary);">Nombre del Establecimiento *</label>
-                <input class="input-field" type="text" name="nombre" required>
+                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--sa-text-secondary);">Nombre del Establecimiento *</label>
+                <input class="sa-input" type="text" name="nombre" required style="width: 100%;">
               </div>
 
               <div>
-                <label style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.4rem; color: var(--text-secondary);">Slug URL (identificador único - Solo Lectura)</label>
-                <input class="input-field" type="text" name="slug" disabled style="opacity: 0.65; cursor: not-allowed; background: var(--bg-card-hover);">
+                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--sa-text-secondary);">Slug URL (identificador único - Solo Lectura)</label>
+                <input class="sa-input" type="text" name="slug" disabled style="opacity: 0.65; cursor: not-allowed; background: var(--sa-bg-subtle); width: 100%;">
               </div>
 
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                 <div>
-                  <label style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.4rem; color: var(--text-secondary);">WhatsApp Pedidos</label>
-                  <input class="input-field" type="text" name="whatsapp" placeholder="54911xxxxxxxx">
+                  <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--sa-text-secondary);">WhatsApp Pedidos</label>
+                  <input class="sa-input" type="text" name="whatsapp" placeholder="54911xxxxxxxx" style="width: 100%;">
                 </div>
 
                 <div>
-                  <label style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.4rem; color: var(--text-secondary);">PIN de Seguridad *</label>
-                  <input class="input-field" type="password" name="pin" maxlength="6" required>
+                  <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--sa-text-secondary);">PIN de Seguridad Dueño *</label>
+                  <input class="sa-input" type="password" name="pin" maxlength="6" required style="width: 100%;">
                 </div>
               </div>
 
               <div>
-                <label style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.4rem; color: var(--text-secondary);">Estilo Visual del Comercio *</label>
-                <select class="input-field" name="tema" required>
-                  <option value="dark">🌙 Gourmet Dark (Oscuro & Dorado)</option>
+                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--sa-text-secondary);">Estilo Visual del Comercio *</label>
+                <select class="sa-select" name="tema" required style="width: 100%;">
                   <option value="light">☀️ Clean Light (Delivery Claro & Coral)</option>
+                  <option value="dark">🌙 Gourmet Dark (Oscuro & Dorado)</option>
                 </select>
               </div>
 
               <div>
-                <label style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.4rem; color: var(--text-secondary);">Descripción breve / Especialidad</label>
-                <input class="input-field" type="text" name="descripcion" placeholder="Hamburguesas smash, pizzas caseras...">
+                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--sa-text-secondary);">Descripción breve / Especialidad</label>
+                <input class="sa-input" type="text" name="descripcion" placeholder="Hamburguesas smash, pizzas caseras..." style="width: 100%;">
               </div>
 
-              <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; border-top: 1px solid var(--border-default); padding-top: 1.25rem;">
-                <button type="button" id="btn-cancel-edit-modal" class="btn btn-secondary">Cancelar</button>
-                <button type="submit" class="btn btn-primary">
-                  <i data-lucide="check"></i>
+              <div style="display: flex; justify-content: flex-end; gap: 0.65rem; margin-top: 0.5rem; border-top: 1px solid var(--sa-border); padding-top: 1.25rem;">
+                <button type="button" id="btn-cancel-edit-modal" class="sa-btn-outline">Cancelar</button>
+                <button type="submit" class="sa-btn-primary">
+                  <i data-lucide="check" style="width: 15px; height: 15px;"></i>
                   Guardar Cambios
                 </button>
               </div>
@@ -709,21 +624,21 @@ export function renderSuperAdmin(targetContainer) {
           </div>
         </div>
 
-        <!-- Modal de Confirmación de Eliminación -->
+        <!-- Modal de Confirmación de Eliminación (Rojo ÚNICAMENTE para acción destructiva) -->
         <div id="delete-store-modal" class="modal-overlay" style="display: none;">
-          <div class="modal-content" style="max-width: 480px; text-align: center; padding: 2rem 1.5rem;">
-            <div style="width: 54px; height: 54px; border-radius: 50%; background: var(--danger-light); color: var(--danger); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem auto;">
-              <i data-lucide="alert-triangle" class="lucide-lg"></i>
+          <div class="modal-content sa-card" style="max-width: 460px; text-align: center; padding: 2rem 1.5rem;">
+            <div style="width: 52px; height: 52px; border-radius: 50%; background: var(--sa-danger-light); color: var(--sa-danger); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem auto;">
+              <i data-lucide="alert-triangle" style="width: 26px; height: 26px;"></i>
             </div>
-            <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 0.75rem; color: var(--text-primary);">¿Eliminar comercio permanentemente?</h3>
-            <p style="color: var(--text-secondary); font-size: 0.875rem; line-height: 1.5; margin-bottom: 1.75rem;">
-              ¿Estás seguro de que deseas eliminar permanentemente el comercio <strong id="delete-store-name" style="color: var(--text-primary);"></strong>? Esta acción también borrará todos sus productos asociados y pedidos.
+            <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--sa-text-primary);">¿Eliminar comercio permanentemente?</h3>
+            <p style="color: var(--sa-text-muted); font-size: 0.875rem; line-height: 1.5; margin-bottom: 1.5rem;">
+              ¿Estás seguro de que deseas eliminar permanentemente el local <strong id="delete-store-name" style="color: var(--sa-text-primary);"></strong>? Se borrarán de inmediato sus productos, pedidos e historial.
             </p>
             <div style="display: flex; gap: 0.75rem; justify-content: center;">
-              <button type="button" id="btn-cancel-delete" class="btn btn-secondary" style="flex: 1;">Cancelar</button>
-              <button type="button" id="btn-confirm-delete" class="btn btn-danger" style="flex: 1.3;">
-                <i data-lucide="trash-2"></i>
-                Eliminar Definitivamente
+              <button type="button" id="btn-cancel-delete" class="sa-btn-outline" style="flex: 1;">Cancelar</button>
+              <button type="button" id="btn-confirm-delete" class="sa-btn-primary" style="flex: 1.2; background-color: var(--sa-danger) !important; border-color: var(--sa-danger) !important;" aria-label="Confirmar eliminación permanente">
+                <i data-lucide="trash-2" style="width: 15px; height: 15px;"></i>
+                Eliminar Comercio
               </button>
             </div>
           </div>
@@ -731,60 +646,60 @@ export function renderSuperAdmin(targetContainer) {
 
         <!-- Modal de Compartir / Copiar Accesos -->
         <div id="share-links-modal" class="modal-overlay" style="display: none;">
-          <div class="modal-content" style="max-width: 500px;">
-            <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-default); display: flex; justify-content: space-between; align-items: center;">
+          <div class="modal-content sa-card" style="max-width: 500px; padding: 0;">
+            <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--sa-border); display: flex; justify-content: space-between; align-items: center;">
               <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <i data-lucide="share-2" style="color: var(--accent);"></i>
-                <h3 style="font-weight: 700;">Enlaces de Acceso - <span id="share-modal-store-name" style="color: var(--accent);"></span></h3>
+                <i data-lucide="share-2" style="color: var(--sa-primary);"></i>
+                <h3 style="font-weight: 700; margin: 0; font-size: 1.1rem; color: var(--sa-text-primary);">Enlaces de Acceso - <span id="share-modal-store-name" style="color: var(--sa-primary);"></span></h3>
               </div>
-              <button id="btn-close-share-modal" class="btn-icon" style="border: none; background: transparent;">
-                <i data-lucide="x"></i>
+              <button id="btn-close-share-modal" class="sa-icon-btn" style="border: none;" aria-label="Cerrar modal">
+                <i data-lucide="x" style="width: 16px; height: 16px;"></i>
               </button>
             </div>
 
-            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.2rem;">
+            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.15rem;">
               
               <!-- Opción 1: Carta Digital Pública -->
-              <div style="background: #f8fafc; border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 1rem;">
+              <div style="background: var(--sa-bg-subtle); border: 1px solid var(--sa-border); border-radius: 12px; padding: 1rem;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
                   <div>
-                    <h4 style="font-size: 0.9rem; font-weight: 700; color: var(--text-primary);">📋 Carta Digital (Clientes)</h4>
-                    <p style="font-size: 0.775rem; color: var(--text-secondary);">Para colocar en Bio de Instagram, QR o compartir en redes</p>
+                    <h4 style="font-size: 0.875rem; font-weight: 700; color: var(--sa-text-primary); margin: 0;">📋 Carta Digital (Clientes)</h4>
+                    <p style="font-size: 0.75rem; color: var(--sa-text-muted); margin: 0.2rem 0 0 0;">Para colocar en Bio de Instagram, QR o redes</p>
                   </div>
-                  <button id="btn-copy-public-link" class="btn btn-primary" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;">
-                    <i data-lucide="copy" class="lucide-sm"></i>
+                  <button id="btn-copy-public-link" class="sa-btn-primary" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;">
+                    <i data-lucide="copy" style="width: 13px; height: 13px;"></i>
                     Copiar
                   </button>
                 </div>
-                <div id="share-public-url" style="font-family: monospace; font-size: 0.8rem; color: var(--text-primary); word-break: break-all; background: #ffffff; border: 1px solid var(--border-default); padding: 0.5rem 0.6rem; border-radius: var(--radius-sm);"></div>
+                <div id="share-public-url" style="font-family: ui-monospace, monospace; font-size: 0.775rem; color: var(--sa-text-primary); word-break: break-all; background: var(--sa-bg-card); border: 1px solid var(--sa-border); padding: 0.45rem 0.6rem; border-radius: 8px;"></div>
               </div>
 
               <!-- Opción 2: Panel de Administración Dueño -->
-              <div style="background: #f8fafc; border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 1rem;">
+              <div style="background: var(--sa-bg-subtle); border: 1px solid var(--sa-border); border-radius: 12px; padding: 1rem;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
                   <div>
-                    <h4 style="font-size: 0.9rem; font-weight: 700; color: var(--text-primary);">🔐 Panel de Administración (Dueño)</h4>
-                    <p style="font-size: 0.775rem; color: var(--text-secondary);">Acceso privado para gestionar productos, pedidos y precios</p>
+                    <h4 style="font-size: 0.875rem; font-weight: 700; color: var(--sa-text-primary); margin: 0;">🔐 Panel de Administración (Dueño)</h4>
+                    <p style="font-size: 0.75rem; color: var(--sa-text-muted); margin: 0.2rem 0 0 0;">Acceso privado para gestionar productos, pedidos y precios</p>
                   </div>
-                  <button id="btn-copy-owner-link" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;">
-                    <i data-lucide="copy" class="lucide-sm"></i>
+                  <button id="btn-copy-owner-link" class="sa-btn-outline" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;">
+                    <i data-lucide="copy" style="width: 13px; height: 13px;"></i>
                     Copiar
                   </button>
                 </div>
-                <div id="share-owner-url" style="font-family: monospace; font-size: 0.8rem; color: var(--text-primary); word-break: break-all; background: #ffffff; border: 1px solid var(--border-default); padding: 0.5rem 0.6rem; border-radius: var(--radius-sm); margin-bottom: 0.5rem;"></div>
-                <div style="font-size: 0.8rem; color: var(--accent); font-weight: 700;">
-                  PIN de Acceso: <span id="share-owner-pin" style="font-family: monospace; font-size: 0.9rem; background: #fee2e2; padding: 0.15rem 0.4rem; border-radius: 4px;"></span>
+                <div id="share-owner-url" style="font-family: ui-monospace, monospace; font-size: 0.775rem; color: var(--sa-text-primary); word-break: break-all; background: var(--sa-bg-card); border: 1px solid var(--sa-border); padding: 0.45rem 0.6rem; border-radius: 8px; margin-bottom: 0.5rem;"></div>
+                <div style="font-size: 0.8rem; color: var(--sa-primary); font-weight: 600;">
+                  PIN de Acceso: <span id="share-owner-pin" style="font-family: ui-monospace, monospace; font-size: 0.875rem; background: var(--sa-primary-light); padding: 0.15rem 0.45rem; border-radius: 6px;"></span>
                 </div>
               </div>
 
-              <!-- Opción 3: Paquete Completo -->
-              <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-default); padding-top: 1rem; gap: 0.75rem;">
-                <button id="btn-copy-all-package" class="btn btn-secondary" style="flex: 1; font-size: 0.8rem; padding: 0.6rem;">
-                  <i data-lucide="clipboard-list" class="lucide-sm"></i>
+              <!-- Opciones de Paquete y WhatsApp -->
+              <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--sa-border); padding-top: 1rem; gap: 0.75rem;">
+                <button id="btn-copy-all-package" class="sa-btn-outline" style="flex: 1; font-size: 0.8rem; padding: 0.6rem;">
+                  <i data-lucide="clipboard-list" style="width: 14px; height: 14px;"></i>
                   Copiar Todo el Paquete
                 </button>
-                <button id="btn-share-modal-wa" class="btn" style="flex: 1; font-size: 0.8rem; padding: 0.6rem; background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-weight: 600;">
-                  <i data-lucide="message-circle" class="lucide-sm"></i>
+                <button id="btn-share-modal-wa" class="sa-btn-primary" style="flex: 1; font-size: 0.8rem; padding: 0.6rem; background-color: var(--sa-success) !important; border-color: var(--sa-success) !important;">
+                  <i data-lucide="message-circle" style="width: 14px; height: 14px;"></i>
                   Enviar por WhatsApp
                 </button>
               </div>
@@ -798,13 +713,13 @@ export function renderSuperAdmin(targetContainer) {
           position: fixed;
           bottom: 2rem;
           right: 2rem;
-          background: #059669;
+          background: #111827;
           color: #ffffff;
-          font-weight: 700;
-          font-size: 0.875rem;
-          padding: 0.75rem 1.25rem;
-          border-radius: var(--radius-lg);
-          box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.4);
+          font-weight: 600;
+          font-size: 0.85rem;
+          padding: 0.7rem 1.15rem;
+          border-radius: var(--sa-radius-button);
+          box-shadow: var(--sa-shadow-elevated);
           display: flex;
           align-items: center;
           gap: 0.5rem;
@@ -814,9 +729,10 @@ export function renderSuperAdmin(targetContainer) {
           z-index: 2000;
           pointer-events: none;
         ">
-          <i data-lucide="check-circle" class="lucide-sm"></i>
-          <span id="superadmin-toast-text">Enlace copiado al portapapeles</span>
+          <i data-lucide="check-circle" style="width: 16px; height: 16px; color: #22C55E;"></i>
+          <span id="superadmin-toast-text">Acción realizada con éxito</span>
         </div>
+
         </div>
       </div>
     `;
@@ -875,7 +791,7 @@ export function renderSuperAdmin(targetContainer) {
       window.open(url, '_blank');
     };
 
-    // Estado del modal de compartir
+    // Modal de compartir
     let currentShareStore = null;
 
     const openShareModal = (store) => {
@@ -900,44 +816,425 @@ export function renderSuperAdmin(targetContainer) {
       if (modal) modal.style.display = 'none';
     };
 
-    // Eventos
+    // Función de renderizado reactivo de filas de la tabla
+    const renderTableRows = () => {
+      const tbody = document.getElementById('sa-table-body');
+      const footerCount = document.getElementById('sa-table-footer-count');
+      if (!tbody) return;
+
+      const filtered = getFilteredStores();
+      if (footerCount) {
+        footerCount.textContent = `Mostrando ${filtered.length} de ${stores.length} comercios`;
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" style="height: auto; padding: 3.5rem 1.5rem; text-align: center; color: var(--sa-text-muted);">
+              <div style="width: 52px; height: 52px; border-radius: 50%; background: var(--sa-bg-subtle); color: var(--sa-text-muted); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem auto; border: 1px solid var(--sa-border);">
+                <i data-lucide="store" style="width: 26px; height: 26px; opacity: 0.6;"></i>
+              </div>
+              <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--sa-text-primary); margin: 0 0 0.3rem 0;">
+                No se encontraron comercios
+              </h4>
+              <p style="font-size: 0.85rem; color: var(--sa-text-muted); margin: 0 0 1rem 0;">
+                ${searchTerm || statusFilter !== 'all' ? 'Intenta modificar el término de búsqueda o el filtro de estado.' : 'Aún no se ha registrado ningún local gastronómico.'}
+              </p>
+              ${searchTerm || statusFilter !== 'all' ? `
+                <button id="btn-clear-table-filters" class="sa-btn-outline" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;" aria-label="Limpiar filtros de búsqueda">
+                  <i data-lucide="rotate-ccw" style="width: 13px; height: 13px;"></i>
+                  Limpiar filtros
+                </button>
+              ` : `
+                <button id="btn-empty-new-store" class="sa-btn-primary" style="font-size: 0.8rem; padding: 0.45rem 1rem;">
+                  <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+                  Registrar Primer Comercio
+                </button>
+              `}
+            </td>
+          </tr>
+        `;
+
+        document.getElementById('btn-clear-table-filters')?.addEventListener('click', () => {
+          searchTerm = '';
+          statusFilter = 'all';
+          const sInput = document.getElementById('sa-search-input');
+          const fSelect = document.getElementById('sa-filter-status');
+          if (sInput) sInput.value = '';
+          if (fSelect) fSelect.value = 'all';
+          renderTableRows();
+        });
+
+        document.getElementById('btn-empty-new-store')?.addEventListener('click', openNewStoreModal);
+
+        if (window.lucide) window.lucide.createIcons();
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(store => {
+        const initials = getInitials(store.nombre);
+        const avatarCol = getAvatarColor(store.nombre);
+        const isPinVisible = Boolean(pinVisibilityState[store.slug]);
+        const pinValue = store.pin || store.pin_admin || store.pin_owner || '****';
+        const cleanPhone = formatWhatsAppNumber(store.whatsapp);
+        const isActive = store.activo !== false;
+
+        return `
+          <tr data-slug="${store.slug}">
+            
+            <!-- 1. Comercio: Avatar circular con iniciales + Nombre y Descripción -->
+            <td data-label="Comercio" style="overflow: hidden;">
+              <div style="display: flex; align-items: center; gap: 0.65rem; min-width: 0;">
+                <div style="
+                  width: 36px; 
+                  height: 36px; 
+                  border-radius: 50%; 
+                  background-color: ${avatarCol.bg}; 
+                  color: ${avatarCol.text}; 
+                  border: 1px solid ${avatarCol.border};
+                  display: flex; 
+                  align-items: center; 
+                  justify-content: center; 
+                  font-weight: 700; 
+                  font-size: 0.8rem; 
+                  letter-spacing: -0.02em;
+                  flex-shrink: 0;
+                ">
+                  ${initials}
+                </div>
+                <div style="min-width: 0; flex: 1; overflow: hidden;">
+                  <span title="${store.nombre}" style="font-size: 0.875rem; font-weight: 600; color: var(--sa-text-primary); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">
+                    ${store.nombre}
+                  </span>
+                  ${store.descripcion ? `
+                    <span title="${store.descripcion}" style="font-size: 0.725rem; color: var(--sa-text-muted); font-weight: 400; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.2;">
+                      ${store.descripcion}
+                    </span>
+                  ` : ''}
+                </div>
+              </div>
+            </td>
+
+            <!-- 2. Slug: Chip monoespaciado con botón discreto de copiar -->
+            <td data-label="Slug" style="overflow: hidden;">
+              <div style="display: inline-flex; align-items: center; gap: 0.35rem; background: var(--sa-bg-subtle); padding: 0.2rem 0.5rem; border-radius: 8px; border: 1px solid var(--sa-border); max-width: 100%;">
+                <span title="/${store.slug}" style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.775rem; color: var(--sa-text-secondary); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  /${store.slug}
+                </span>
+                <button class="btn-copy-slug-inline" data-slug="${store.slug}" style="background: none; border: none; padding: 0.15rem; cursor: pointer; color: var(--sa-text-muted); display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; transition: color 150ms;" title="Copiar enlace" aria-label="Copiar slug /${store.slug}">
+                  <i data-lucide="copy" style="width: 12px; height: 12px;"></i>
+                </button>
+              </div>
+            </td>
+
+            <!-- 3. WhatsApp: Link directo clickeable (wa.me) con icono verde -->
+            <td data-label="WhatsApp" style="overflow: hidden;">
+              ${store.whatsapp ? `
+                <a href="https://wa.me/${cleanPhone}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 0.45rem; text-decoration: none; color: var(--sa-text-primary); font-size: 0.825rem; font-weight: 500; transition: color 150ms;" title="Abrir WhatsApp Web" aria-label="Abrir WhatsApp ${store.whatsapp}">
+                  <span style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #DCFCE7; color: #16A34A; flex-shrink: 0;">
+                    <i data-lucide="message-circle" style="width: 13px; height: 13px;"></i>
+                  </span>
+                  <span style="color: var(--sa-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${store.whatsapp}</span>
+                </a>
+              ` : `
+                <span style="color: var(--sa-text-muted); font-size: 0.8rem; font-style: italic;">Sin asignar</span>
+              `}
+            </td>
+
+            <!-- 4. PIN: Oculto por defecto (••••) con botón de ojo para alternar -->
+            <td data-label="PIN" style="text-align: center; white-space: nowrap;">
+              <div style="display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;">
+                <span class="pin-display" data-slug="${store.slug}" style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.85rem; letter-spacing: ${isPinVisible ? '0.05em' : '0.15em'}; font-weight: 700; color: var(--sa-text-primary);">
+                  ${isPinVisible ? pinValue : '••••'}
+                </span>
+                <button class="btn-toggle-pin" data-slug="${store.slug}" style="background: none; border: none; padding: 0.2rem; cursor: pointer; color: var(--sa-text-muted); display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; transition: color 150ms;" title="${isPinVisible ? 'Ocultar PIN' : 'Mostrar PIN'}" aria-label="${isPinVisible ? 'Ocultar PIN' : 'Mostrar PIN'}">
+                  <i data-lucide="${isPinVisible ? 'eye-off' : 'eye'}" style="width: 14px; height: 14px;"></i>
+                </button>
+              </div>
+            </td>
+
+            <!-- 5. Estilo: Select con borde fino y selector temático -->
+            <td data-label="Estilo" style="white-space: nowrap;">
+              <select class="select-store-theme sa-select" data-slug="${store.slug}" aria-label="Estilo visual de ${store.nombre}" style="
+                padding: 0.25rem 0.5rem;
+                font-size: 0.75rem;
+                font-weight: 600;
+                width: 100%;
+                max-width: 110px;
+                border-radius: 10px;
+                cursor: pointer;
+              ">
+                <option value="light" ${store.tema === 'light' ? 'selected' : ''}>☀️ Light</option>
+                <option value="dark" ${store.tema !== 'light' ? 'selected' : ''}>🌙 Dark</option>
+              </select>
+            </td>
+
+            <!-- 6. Estado: Toggle switch interactivo + badge verde / ámbar -->
+            <td data-label="Estado" style="white-space: nowrap;">
+              <div style="display: inline-flex; align-items: center; gap: 0.6rem;">
+                <!-- Switch Toggle -->
+                <button class="btn-toggle-status-switch" data-id="${store.id}" data-active="${isActive}" role="switch" aria-checked="${isActive}" aria-label="Alternar estado de ${store.nombre}" style="
+                  position: relative;
+                  width: 36px;
+                  height: 20px;
+                  border-radius: 999px;
+                  background-color: ${isActive ? '#16A34A' : 'var(--sa-border)'};
+                  border: none;
+                  cursor: pointer;
+                  transition: background-color 150ms ease;
+                  padding: 2px;
+                  display: inline-flex;
+                  align-items: center;
+                  flex-shrink: 0;
+                ">
+                  <span style="
+                    width: 16px;
+                    height: 16px;
+                    border-radius: 50%;
+                    background-color: #ffffff;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+                    transition: transform 150ms ease;
+                    transform: translateX(${isActive ? '16px' : '0px'});
+                    display: block;
+                  "></span>
+                </button>
+
+                <!-- Badge Estado (Verde #16A34A / Ámbar #D97706) -->
+                <span class="badge" style="
+                  font-size: 0.725rem;
+                  font-weight: 600;
+                  padding: 0.18rem 0.55rem;
+                  border-radius: 999px;
+                  background: ${isActive ? 'var(--sa-success-light)' : 'var(--sa-warning-light)'};
+                  color: ${isActive ? 'var(--sa-success-text)' : 'var(--sa-warning-text)'};
+                  border: 1px solid ${isActive ? 'var(--sa-success-border)' : 'var(--sa-warning-border)'};
+                  display: inline-flex;
+                  align-items: center;
+                  gap: 0.3rem;
+                ">
+                  <span style="width: 6px; height: 6px; border-radius: 50%; background: ${isActive ? '#16A34A' : '#D97706'};"></span>
+                  ${isActive ? 'Operativo' : 'Pausado'}
+                </span>
+              </div>
+            </td>
+
+            <!-- 7. Acciones: 2 botones icon-only visibles (Editar + Abrir Carta) y menú '⋯' -->
+            <td data-label="Acciones" style="text-align: right; white-space: nowrap; overflow: visible; position: relative;">
+              <div style="display: inline-flex; gap: 0.35rem; align-items: center; justify-content: flex-end; position: relative;">
+                
+                <!-- Botón 1: Editar Comercio -->
+                <button class="sa-icon-btn btn-edit-store" data-slug="${store.slug}" title="Editar comercio" aria-label="Editar comercio ${store.nombre}">
+                  <i data-lucide="pencil" style="width: 14px; height: 14px;"></i>
+                </button>
+
+                <!-- Botón 2: Abrir Carta Digital Pública -->
+                <a href="?local=${store.slug}" target="_blank" class="sa-icon-btn btn-view-menu" title="Ver carta digital" aria-label="Ver carta digital de ${store.nombre}">
+                  <i data-lucide="external-link" style="width: 14px; height: 14px;"></i>
+                </a>
+
+                <!-- Botón 3: Menú Desplegable '⋯' con el resto de opciones -->
+                <div class="dropdown-container" style="position: relative; display: inline-block;">
+                  <button class="sa-icon-btn btn-more-actions" data-slug="${store.slug}" title="Más opciones" aria-label="Más opciones para ${store.nombre}" aria-haspopup="true">
+                    <i data-lucide="more-horizontal" style="width: 16px; height: 16px;"></i>
+                  </button>
+
+                  <div class="sa-dropdown-menu" id="dropdown-${store.slug}" style="display: none;">
+                    
+                    <button class="sa-dropdown-item btn-whatsapp-share" data-slug="${store.slug}">
+                      <i data-lucide="message-circle" style="width: 14px; height: 14px; color: #16A34A;"></i>
+                      <span>Enviar accesos por WhatsApp</span>
+                    </button>
+
+                    <button class="sa-dropdown-item btn-copy-links" data-slug="${store.slug}">
+                      <i data-lucide="copy" style="width: 14px; height: 14px; color: var(--sa-primary);"></i>
+                      <span>Copiar enlaces de acceso</span>
+                    </button>
+
+                    <a href="?owner=${store.slug}" class="sa-dropdown-item">
+                      <i data-lucide="lock" style="width: 14px; height: 14px; color: var(--sa-text-secondary);"></i>
+                      <span>Panel del Dueño</span>
+                    </a>
+
+                    <button class="sa-dropdown-item btn-toggle-status" data-id="${store.id}" data-active="${isActive}">
+                      <i data-lucide="${isActive ? 'pause' : 'play'}" style="width: 14px; height: 14px; color: ${isActive ? '#D97706' : '#16A34A'};"></i>
+                      <span>${isActive ? 'Pausar comercio' : 'Reactivar comercio'}</span>
+                    </button>
+
+                    <div style="height: 1px; background: var(--sa-border); margin: 0.35rem 0;"></div>
+
+                    <button class="sa-dropdown-item sa-dropdown-item-danger btn-delete-store" data-slug="${store.slug}">
+                      <i data-lucide="trash-2" style="width: 14px; height: 14px; color: var(--sa-danger);"></i>
+                      <span>Eliminar comercio</span>
+                    </button>
+
+                  </div>
+                </div>
+
+              </div>
+            </td>
+
+          </tr>
+        `;
+      }).join('');
+
+      // Enlazar listeners dinámicos de las filas
+      // 1. Alternar PIN
+      tbody.querySelectorAll('.btn-toggle-pin').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const slug = btn.getAttribute('data-slug');
+          pinVisibilityState[slug] = !pinVisibilityState[slug];
+          renderTableRows();
+        });
+      });
+
+      // 2. Copiar slug inline
+      tbody.querySelectorAll('.btn-copy-slug-inline').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const slug = btn.getAttribute('data-slug');
+          const url = `${window.location.origin}/?local=${slug}`;
+          await navigator.clipboard.writeText(url);
+          showToast(`Enlace /${slug} copiado al portapapeles`);
+        });
+      });
+
+      // 3. Switch de estado interactivo
+      tbody.querySelectorAll('.btn-toggle-status-switch').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const id = btn.getAttribute('data-id');
+          const isActive = btn.getAttribute('data-active') === 'true';
+          await toggleStoreStatus(id, isActive);
+        });
+      });
+
+      // 4. Botón '⋯' menú desplegable
+      tbody.querySelectorAll('.btn-more-actions').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const slug = btn.getAttribute('data-slug');
+          const menu = document.getElementById(`dropdown-${slug}`);
+          
+          // Cerrar otros dropdowns
+          document.querySelectorAll('.sa-dropdown-menu').forEach(m => {
+            if (m !== menu) m.style.display = 'none';
+          });
+
+          if (menu) {
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+          }
+        });
+      });
+
+      // 5. Botones de Editar
+      tbody.querySelectorAll('.btn-edit-store').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const slug = btn.getAttribute('data-slug');
+          const st = stores.find(s => s.slug === slug);
+          if (st) openEditStoreModal(st);
+        });
+      });
+
+      // 6. Botones de WhatsApp dentro del menú
+      tbody.querySelectorAll('.btn-whatsapp-share').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const slug = btn.getAttribute('data-slug');
+          const st = stores.find(s => s.slug === slug);
+          if (st) sendWhatsAppAccess(st);
+          // Cerrar menú
+          const menu = document.getElementById(`dropdown-${slug}`);
+          if (menu) menu.style.display = 'none';
+        });
+      });
+
+      // 7. Botones de Copiar Accesos dentro del menú
+      tbody.querySelectorAll('.btn-copy-links').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const slug = btn.getAttribute('data-slug');
+          const st = stores.find(s => s.slug === slug);
+          if (st) openShareModal(st);
+          // Cerrar menú
+          const menu = document.getElementById(`dropdown-${slug}`);
+          if (menu) menu.style.display = 'none';
+        });
+      });
+
+      // 8. Botones de Pausar / Reactivar dentro del menú
+      tbody.querySelectorAll('.btn-toggle-status').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const id = btn.getAttribute('data-id');
+          const isActive = btn.getAttribute('data-active') === 'true';
+          await toggleStoreStatus(id, isActive);
+        });
+      });
+
+      // 9. Botones de Eliminar dentro del menú (Rojo con confirmación)
+      tbody.querySelectorAll('.btn-delete-store').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const slug = btn.getAttribute('data-slug');
+          const st = stores.find(s => s.slug === slug);
+          if (st) openDeleteModal(st);
+          // Cerrar menú
+          const menu = document.getElementById(`dropdown-${slug}`);
+          if (menu) menu.style.display = 'none';
+        });
+      });
+
+      // 10. Selector de estilo visual en la fila
+      tbody.querySelectorAll('.select-store-theme').forEach(sel => {
+        sel.addEventListener('change', async (e) => {
+          const slug = e.target.getAttribute('data-slug');
+          const newTheme = e.target.value;
+          await updateStoreTheme(slug, newTheme);
+        });
+      });
+
+      if (window.lucide) window.lucide.createIcons();
+    };
+
+    // Renderizar filas inicialmente
+    renderTableRows();
+
+    // Listener para cerrar cualquier dropdown al hacer clic fuera
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.dropdown-container')) {
+        document.querySelectorAll('.sa-dropdown-menu').forEach(m => {
+          m.style.display = 'none';
+        });
+      }
+    });
+
+    // Buscador en tiempo real
+    document.getElementById('sa-search-input')?.addEventListener('input', (e) => {
+      searchTerm = e.target.value;
+      renderTableRows();
+    });
+
+    // Filtro por estado
+    document.getElementById('sa-filter-status')?.addEventListener('change', (e) => {
+      statusFilter = e.target.value;
+      renderTableRows();
+    });
+
+    // Modales: Nuevo Comercio
     document.getElementById('btn-new-store')?.addEventListener('click', openNewStoreModal);
     document.getElementById('btn-close-modal')?.addEventListener('click', closeNewStoreModal);
     document.getElementById('btn-cancel-modal')?.addEventListener('click', closeNewStoreModal);
     document.getElementById('form-create-store')?.addEventListener('submit', handleCreateStore);
 
-    // Eventos Editar
+    // Modales: Editar Comercio
     document.getElementById('btn-close-edit-modal')?.addEventListener('click', closeEditStoreModal);
     document.getElementById('btn-cancel-edit-modal')?.addEventListener('click', closeEditStoreModal);
     document.getElementById('form-edit-store')?.addEventListener('submit', handleUpdateStore);
 
-    document.querySelectorAll('.btn-edit-store').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const slug = btn.getAttribute('data-slug');
-        const st = stores.find(s => s.slug === slug);
-        if (st) openEditStoreModal(st);
-      });
-    });
-
-    // Eventos Compartir / WhatsApp / Copiar
-    document.querySelectorAll('.btn-whatsapp-share').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const slug = btn.getAttribute('data-slug');
-        const st = stores.find(s => s.slug === slug);
-        if (st) sendWhatsAppAccess(st);
-      });
-    });
-
-    document.querySelectorAll('.btn-copy-links').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const slug = btn.getAttribute('data-slug');
-        const st = stores.find(s => s.slug === slug);
-        if (st) openShareModal(st);
-      });
-    });
-
+    // Modales: Compartir Enlaces
     document.getElementById('btn-close-share-modal')?.addEventListener('click', closeShareModal);
-
     document.getElementById('btn-copy-public-link')?.addEventListener('click', async () => {
       if (!currentShareStore) return;
       const url = `${window.location.origin}/?local=${currentShareStore.slug}`;
@@ -966,36 +1263,11 @@ export function renderSuperAdmin(targetContainer) {
       }
     });
 
-    // Eventos Eliminar
+    // Modales: Eliminar Comercio
     document.getElementById('btn-cancel-delete')?.addEventListener('click', closeDeleteModal);
     document.getElementById('btn-confirm-delete')?.addEventListener('click', confirmDeleteStore);
 
-    document.querySelectorAll('.btn-delete-store').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const slug = btn.getAttribute('data-slug');
-        const st = stores.find(s => s.slug === slug);
-        if (st) openDeleteModal(st);
-      });
-    });
-
-    document.querySelectorAll('.btn-toggle-status').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-id');
-        const isActive = btn.getAttribute('data-active') === 'true';
-        toggleStoreStatus(id, isActive);
-      });
-    });
-
-    // Evento de cambio de tema en la tabla de comercios
-    document.querySelectorAll('.select-store-theme').forEach(sel => {
-      sel.addEventListener('change', async (e) => {
-        const slug = e.target.getAttribute('data-slug');
-        const newTheme = e.target.value;
-        await updateStoreTheme(slug, newTheme);
-      });
-    });
-
-    // Evento selector de tema del propio Super-Admin
+    // Selector de tema del panel Super-Admin
     document.getElementById('superadmin-theme-switcher')?.addEventListener('change', (e) => {
       const chosenTheme = e.target.value === 'dark' ? 'dark' : 'light';
       localStorage.setItem('superadmin_theme', chosenTheme);
@@ -1005,7 +1277,7 @@ export function renderSuperAdmin(targetContainer) {
         dark: '🌙 Gourmet Dark',
         light: '☀️ Clean Light'
       };
-      showToast(`Vista Super-Admin cambiada a ${themeLabels[chosenTheme]}`);
+      showToast(`Vista cambiada a ${themeLabels[chosenTheme]}`);
     });
 
     if (window.lucide) {
